@@ -1,0 +1,49 @@
+# Ruby / Rails
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+
+# Database
+/db/*.sqlite3
+/db/*.sqlite3-journal
+
+# Storage (uploads)
+/storage/*
+!/storage/.keep
+
+# Node
+/node_modules
+/public/packs
+/public/packs-test
+
+# Env / secrets
+.env
+.env.*
+docker/.env*
+
+# Docker / backups
+*.tar
+*.gz
+
+# Redis / Postgres volumes
+redis_data
+postgres_data
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode
+.idea
+
+# Coverage / tests
+coverage/
+
+# Cache
+.cache
+.bundle
+
+# Logs
+*.log
