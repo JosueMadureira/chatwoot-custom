@@ -18,7 +18,6 @@
 
 ### v1 – Bloqueio de Atendimentos Duplicados
 - Impede que dois agentes atendam o mesmo cliente ao mesmo tempo
-- Remove conversas duplicadas da inbox automaticamente
 - Evita conflitos e bagunça nos atendimentos
 
 ## 📦 Como usar com Docker
