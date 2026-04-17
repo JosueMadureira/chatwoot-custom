@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker build *)",
+      "Bash(docker images)",
+      "Bash(docker rmi *)",
+      "Bash(true)",
+      "Bash(eval *)",
+      "Bash(bundle *)",
+      "Bash(ruby *)"
+    ]
+  },
+  "$version": 3
+}
