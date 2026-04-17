@@ -1,78 +1,25 @@
-# Chatwoot Custom (Lock de Conversas)
+# Chatwoot Custom
 
-Versão customizada do Chatwoot com bloqueio de atendimentos duplicados por contato na mesma inbox.
+**Versão customizada do Chatwoot com melhorias focadas na experiência do agente.**
 
----
-
-## 🚀 Funcionalidade principal
-
-Impede que dois agentes iniciem atendimento simultaneamente para o mesmo contato na mesma inbox.
+[![Docker Pulls](https://img.shields.io/docker/pulls/josuemadureira/chatwoot-custom)](https://hub.docker.com/r/josuemadureira/chatwoot-custom)
 
 ---
 
-## 🧠 Como funciona
+## ✨ Funcionalidades Implementadas
 
-* Validação no backend antes de criar conversa
-* Retorno HTTP 422 quando já existe atendimento aberto
-* Tratamento de concorrência (race condition)
-* Feedback no frontend para o agente
+### v1 – Bloqueio de Atendimentos Duplicados (Lock de Conversas)
+- Impede que **dois agentes atendam o mesmo cliente ao mesmo tempo**
+- Remove conversas duplicadas da inbox automaticamente
+- Elimina conflitos operacionais e inconsistência de dados
 
----
+**Versão base**: Chatwoot oficial **v4.12.1**
 
-## 💥 Problema que resolve
+### v1.2 – Notificações Inteligentes (em breve)
+Notificações como WhatsApp/Telegram (nome do contato + prévia da mensagem).
 
-Evita:
+## 📦 Como usar (Docker)
 
-* conversas duplicadas
-* conflito entre atendentes
-* inconsistência de dados
-
----
-
-## 📦 Uso
-
+### Versão v1 (Bloqueio de duplicidade)
 ```bash
 docker pull josuemadureira/chatwoot-custom:v1
-```
-
-```yaml
-services:
-  chatwoot_app:
-    image: josuemadureira/chatwoot-custom:v1
-```
-
----
-
-## ⚙️ Requisitos
-
-* Docker
-* Banco já existente (Postgres)
-* Redis
-
----
-
-## ⚠️ Observações
-
-* Requer migrations aplicadas
-* Não remove dados existentes
-* Compatível com ambiente já em produção
-
----
-
-## 🔄 Versões
-
-### v1
-
-* Implementação do bloqueio de atendimentos duplicados
-
----
-
-## 📌 Base
-
-Baseado no Chatwoot oficial V4.12.1
-
----
-
-## 👨‍💻 Autor
-
-Josué Madureira
