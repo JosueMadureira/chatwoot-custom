@@ -4,6 +4,7 @@ import { useMapGetter } from 'dashboard/composables/store';
 import { useStore } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import Avatar from 'next/avatar/Avatar.vue';
+import Icon from 'next/icon/Icon.vue';
 
 const accountId = useMapGetter('getCurrentAccountId');
 const currentUser = useMapGetter('getCurrentUser');
@@ -20,6 +21,7 @@ const showPicker = ref(false);
 const selected = ref([]);
 const editingId = ref(null);
 const editContent = ref('');
+const pastedFiles = ref([]); // arquivos colados via Ctrl+V (imagens)
 let timer = null;
 let unreadTimer = null;
 
@@ -34,6 +36,7 @@ const markRead = async () => {
 };
 
 onMounted(async () => {
+  document.addEventListener('paste', onPaste);
   await loadConvs();
   await axios.get(BASE.value + '/users').then(r => users.value = r.data || []).catch(() => {});
   await markRead();
@@ -43,6 +46,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  document.removeEventListener('paste', onPaste);
   clearInterval(timer);
   clearInterval(unreadTimer);
 });
@@ -56,6 +60,26 @@ const scrollToBottom = async (smooth = false) => {
   const el = msgContainer.value;
   if (!el) return;
   el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+};
+
+// Cola imagem com Ctrl+V (como no chat com cliente): lê arquivos do clipboard e
+// adiciona como anexo pendente (preview acima do input).
+const onPaste = e => {
+  if (!currentConv.value) return;
+  const files = Array.from(e.clipboardData?.files || []).filter(f => f.size > 0);
+  if (!files.length) return;
+  e.preventDefault();
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onloadend = () => {
+      pastedFiles.value.push({ file, thumb: reader.result });
+    };
+  });
+};
+
+const removePasted = idx => {
+  pastedFiles.value.splice(idx, 1);
 };
 
 const onScroll = () => {
@@ -86,14 +110,14 @@ const fileInput = ref(null);
 const sending = ref(false);
 
 const sendMsg = async () => {
-  if ((!newMsg.value.trim() && !fileInput.value?.files?.length) || !currentConv.value || sending.value) return;
+  const fileList = [...(fileInput.value?.files || [])];
+  if ((!newMsg.value.trim() && !fileList.length && !pastedFiles.value.length) || !currentConv.value || sending.value) return;
   sending.value = true;
   try {
     const formData = new FormData();
-    formData.append('content', newMsg.value.trim());
-    if (fileInput.value?.files?.length) {
-      for (const f of fileInput.value.files) formData.append('attachments[]', f);
-    }
+    if (newMsg.value.trim()) formData.append('content', newMsg.value.trim());
+    for (const f of fileList) formData.append('attachments[]', f);
+    pastedFiles.value.forEach(pf => formData.append('attachments[]', pf.file));
     const r = await axios.post(`${BASE.value}/${currentConv.value.id}/create_message`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
@@ -101,6 +125,7 @@ const sendMsg = async () => {
     stickToBottom = true;
     await scrollToBottom(true);
     newMsg.value = '';
+    pastedFiles.value = [];
     if (fileInput.value) fileInput.value.value = '';
   } catch(e) { useAlert('Erro ao enviar'); }
   finally { sending.value = false; }
@@ -210,56 +235,71 @@ const listName = conv => (conv.participants || []).filter(p => p.id !== currentU
       </div>
 
       <div v-if="currentConv" ref="msgContainer" class="flex-1 overflow-y-auto px-4 py-4 space-y-2" @scroll="onScroll">
-        <div v-for="msg in messages" :key="msg.id" class="flex flex-col" :class="msg.sender?.id === currentUser?.id ? 'items-end' : 'items-start'">
-          <div v-if="msg.sender?.id !== currentUser?.id" class="text-xs text-n-slate-10 mb-1 ml-1">{{ msg.sender?.name }}</div>
-          <!-- Bubble with hover group -->
-          <div class="group max-w-xs lg:max-w-md xl:max-w-lg rounded-2xl px-3 py-2 text-sm leading-5 break-words relative"
-            :class="msg.sender?.id === currentUser?.id ? 'bg-woot-500 text-white rounded-br-md' : 'bg-n-slate-3 text-n-slate-12 rounded-bl-md'"
-            @click.right.prevent="msg.sender?.id === currentUser?.id && !msg.deleted ? (canEdit(msg) ? startEdit(msg) : null) : null">
-            <!-- Edit mode -->
-            <div v-if="editingId === msg.id">
-              <textarea v-model="editContent" class="w-full bg-transparent border rounded p-1 text-sm outline-none resize-none"
-                :class="msg.sender?.id === currentUser?.id ? 'text-white border-white/30' : 'text-n-slate-12 border-n-slate-5'" rows="2"/>
-              <div class="flex gap-2 justify-end text-xs mt-1">
-                <button class="underline opacity-70 hover:opacity-100" @click="saveEdit(msg)">Salvar</button>
-                <button class="underline opacity-70 hover:opacity-100" @click="editingId = null">Cancelar</button>
-              </div>
-            </div>
-            <!-- Normal message -->
-            <div v-else>
-              <span v-if="msg.deleted" class="italic opacity-60">Mensagem apagada</span>
-              <div v-else>
-                <span>{{ msg.content }}</span>
-                <div v-if="msg.attachments?.length" class="mt-1 flex flex-wrap gap-1">
-                  <template v-for="att in msg.attachments" :key="att.id">
-                    <a v-if="isImage(att.file_name)" :href="att.file_url" target="_blank" class="block">
-                      <img :src="att.file_url" class="max-w-[200px] max-h-[150px] rounded-lg object-cover" />
-                    </a>
-                    <a v-else :href="att.file_url" target="_blank"
-                      class="flex items-center gap-1 px-2 py-1 rounded bg-black/10 text-xs">
-                      <fluent-icon icon="attach" size="12" /> {{ att.file_name }}
-                    </a>
-                  </template>
+        <div v-for="msg in messages" :key="msg.id" class="flex w-full mb-2" :class="msg.sender?.id === currentUser?.id ? 'justify-end' : 'justify-start'">
+          <!-- Avatar lateral (igual à conversa com cliente) -->
+          <div v-if="msg.sender?.id !== currentUser?.id" class="flex items-end shrink-0 ltr:mr-2 rtl:ml-2">
+            <Avatar :name="msg.sender?.name" :src="msg.sender?.avatar_url" :size="24" class="rounded-full" />
+          </div>
+          <div class="group flex flex-col min-w-0" :class="msg.sender?.id === currentUser?.id ? 'items-end' : 'items-start'">
+            <div v-if="msg.sender?.id !== currentUser?.id && !msg.deleted" class="text-xs text-n-slate-10 mb-1 ltr:ml-1 rtl:mr-1">{{ msg.sender?.name }}</div>
+            <!-- Bubble com hover group (mesmo visual do chat do cliente) -->
+            <div class="relative max-w-xs lg:max-w-md xl:max-w-lg rounded-xl px-3 py-2 text-sm leading-5 break-words"
+              :class="msg.sender?.id === currentUser?.id
+                ? 'right-bubble ltr:rounded-br-sm rtl:rounded-bl-sm bg-n-solid-blue text-n-slate-12'
+                : 'left-bubble ltr:rounded-bl-sm rtl:rounded-br-sm bg-n-slate-4 text-n-slate-12'"
+              @click.right.prevent="msg.sender?.id === currentUser?.id && !msg.deleted ? (canEdit(msg) ? startEdit(msg) : null) : null">
+              <!-- Edit mode -->
+              <div v-if="editingId === msg.id">
+                <textarea v-model="editContent" class="w-full bg-transparent border rounded p-1 text-sm outline-none resize-none"
+                  :class="msg.sender?.id === currentUser?.id ? 'text-n-slate-12 border-n-slate-5' : 'text-n-slate-12 border-n-slate-5'" rows="2"/>
+                <div class="flex gap-2 justify-end text-xs mt-1">
+                  <button class="underline opacity-70 hover:opacity-100" @click="saveEdit(msg)">Salvar</button>
+                  <button class="underline opacity-70 hover:opacity-100" @click="editingId = null">Cancelar</button>
                 </div>
               </div>
-            </div>
-            <!-- Footer: time + edit/delete buttons on hover + read receipts -->
-            <div v-if="editingId !== msg.id" class="flex items-center gap-1 mt-1" :class="msg.sender?.id === currentUser?.id ? 'justify-end' : 'justify-start'">
-              <!-- Edit/Delete buttons: only visible on hover -->
-              <div v-if="msg.sender?.id === currentUser?.id && !msg.deleted" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity mr-1">
-                <button v-if="canEdit(msg)" class="text-xxs underline hover:opacity-100" :class="msg.sender?.id === currentUser?.id ? 'text-white/70' : 'text-n-slate-10'" @click.stop="startEdit(msg)">editar</button>
-                <button v-if="canDelete(msg)" class="text-xxs underline hover:opacity-100" :class="msg.sender?.id === currentUser?.id ? 'text-white/70' : 'text-n-slate-10'" @click.stop="deleteMsg(msg)">excluir</button>
+              <!-- Normal message -->
+              <div v-else>
+                <span v-if="msg.deleted" class="italic opacity-60">Mensagem apagada</span>
+                <div v-else>
+                  <span>{{ msg.content }}</span>
+                  <div v-if="msg.attachments?.length" class="mt-1 flex flex-wrap gap-1">
+                    <template v-for="att in msg.attachments" :key="att.id">
+                      <a v-if="isImage(att.file_name)" :href="att.file_url" target="_blank" class="block">
+                        <img :src="att.file_url" class="max-w-[200px] max-h-[150px] rounded-lg object-cover" />
+                      </a>
+                      <a v-else :href="att.file_url" target="_blank"
+                        class="flex items-center gap-1 px-2 py-1 rounded bg-black/10 text-xs">
+                        <fluent-icon icon="attach" size="12" /> {{ att.file_name }}
+                      </a>
+                    </template>
+                  </div>
+                </div>
               </div>
-              <span class="text-xxs" :class="msg.sender?.id === currentUser?.id ? 'text-white/60' : 'text-n-slate-10'">
-                {{ fmtHour(msg.created_at) }}
-                <span v-if="msg.edited" class="ml-0.5">(editada)</span>
-              </span>
-              <!-- Read receipts for sent messages -->
-              <span v-if="msg.sender?.id === currentUser?.id && !msg.deleted && msg.read_by" class="ml-0.5">
-                <span v-if="msg.read_by.length > 0" class="text-xxs text-white/70">✓✓</span>
-                <span v-else class="text-xxs text-white/40">✓</span>
-              </span>
+              <!-- Footer: hora + editar/excluir no hover + status entregue/lido (igual WhatsApp) -->
+              <div v-if="editingId !== msg.id" class="flex items-center gap-1 mt-1" :class="msg.sender?.id === currentUser?.id ? 'justify-end' : 'justify-start'">
+                <span class="text-xxs text-n-slate-10">
+                  {{ fmtHour(msg.created_at) }}
+                  <span v-if="msg.edited" class="ml-0.5">(editada)</span>
+                </span>
+                <!-- Status entregue/lido: dois checks cinza (entregue) ou azul (lido) -->
+                <span v-if="msg.sender?.id === currentUser?.id && !msg.deleted && msg.read_by" class="ml-0.5">
+                  <Icon
+                    v-tooltip.top-start="msg.read_by.length > 0 ? 'Lida' : 'Entregue'"
+                    icon="i-lucide-check-check"
+                    :class="msg.read_by.length > 0 ? 'text-[#7EB6FF]' : 'text-n-slate-10'"
+                    class="size-[14px]"
+                  />
+                </span>
+              </div>
             </div>
+            <!-- Edit/Delete buttons: visíveis no hover, abaixo da bolha -->
+            <div v-if="msg.sender?.id === currentUser?.id && !msg.deleted" class="flex gap-2 text-xxs opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 ltr:mr-1 rtl:ml-1">
+              <button v-if="canEdit(msg)" class="underline text-n-slate-10 hover:text-n-slate-12" @click.stop="startEdit(msg)">editar</button>
+              <button v-if="canDelete(msg)" class="underline text-n-slate-10 hover:text-n-slate-12" @click.stop="deleteMsg(msg)">excluir</button>
+            </div>
+          </div>
+          <div v-if="msg.sender?.id === currentUser?.id" class="flex items-end shrink-0 ltr:ml-2 rtl:mr-2">
+            <Avatar :name="currentUser?.name" :src="currentUser?.avatar_url" :size="24" class="rounded-full" />
           </div>
         </div>
       </div>
@@ -270,6 +310,16 @@ const listName = conv => (conv.participants || []).filter(p => p.id !== currentU
       </div>
 
       <div v-if="currentConv" class="px-4 py-3 border-t border-n-slate-3 bg-n-surface-1">
+        <!-- Preview dos arquivos colados via Ctrl+V -->
+        <div v-if="pastedFiles.length" class="flex flex-wrap gap-2 mb-2">
+          <div v-for="(pf, idx) in pastedFiles" :key="idx" class="relative">
+            <img :src="pf.thumb" class="size-16 object-cover rounded-lg border border-n-slate-4" />
+            <button
+              class="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-n-slate-12 text-white text-xs flex items-center justify-center hover:bg-n-ruby-9"
+              @click="removePasted(idx)"
+            >×</button>
+          </div>
+        </div>
         <div class="flex items-end gap-2 bg-n-slate-2 rounded-2xl px-3 py-2 border border-n-slate-4 focus-within:border-woot-400 transition-colors">
           <button class="flex items-center justify-center size-8 rounded-lg hover:bg-n-alpha-2 text-n-slate-9 flex-shrink-0" @click="triggerFile">
             <fluent-icon icon="attach" size="18" />
@@ -278,7 +328,7 @@ const listName = conv => (conv.participants || []).filter(p => p.id !== currentU
           <textarea v-model="newMsg" class="flex-1 bg-transparent text-sm text-n-slate-12 outline-none resize-none max-h-20 placeholder-n-slate-9"
             placeholder="Digite sua mensagem..." rows="1" @keyup.enter.exact="sendMsg" @keydown.enter.exact.prevent/>
           <button class="flex items-center justify-center size-8 rounded-lg transition-colors flex-shrink-0"
-            :class="newMsg.trim() ? 'bg-woot-500 text-white hover:bg-woot-600' : 'text-n-slate-9'" :disabled="!newMsg.trim() && !fileInput?.files?.length" @click="sendMsg">
+            :class="newMsg.trim() || pastedFiles.length ? 'bg-woot-500 text-white hover:bg-woot-600' : 'text-n-slate-9'" :disabled="!newMsg.trim() && !fileInput?.files?.length && !pastedFiles.length" @click="sendMsg">
             <fluent-icon icon="send" size="16" />
           </button>
         </div>

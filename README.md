@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.14.3` | **Atual** — base v4.14.2 + correção dos 3 bugs do Chat Interno |
+| `josuemadureira/chatwoot-custom:v4.14.4` | **Atual** — v4.14.3 + melhorias visuais do Chat Interno (balões/avatares iguais ao cliente, checks ✓✓ entregue/lido, colar imagem com Ctrl+V) |
+| `josuemadureira/chatwoot-custom:v4.14.3` | v4.14.2 + correção dos 3 bugs do Chat Interno |
 | `josuemadureira/chatwoot-custom:v4.14.2` | Produção em uso até 2026-08-02 (sem as correções) |
 | `josuemadureira/chatwoot-custom:v1.2` | Versão antiga (Notificações Inteligentes) |
 
@@ -45,6 +46,16 @@ Três bugs foram corrigidos:
 - **Sintoma:** ao abrir uma conversa, o chat rolava para cima (na 1ª mensagem) em vez de abrir na última.
 - **Causa:** o `InternalChatLayout.vue` não tinha nenhuma lógica de scroll.
 - **Correção:** adicionada lógica `scrollToBottom` (via `nextTick` + `scrollTo`) com comportamento "grudar no fundo": abre na última mensagem, desgruda se o usuário rolar para cima e volta a grudar ao enviar/receber mensagem — igual ao WhatsApp.
+- **Arquivo:** `chatwoot-fix/InternalChatLayout.vue`
+
+### v4.14.4 – Melhorias visuais do Chat Interno (2026-08-02)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.14.3`. Apenas o frontend mudou (`InternalChatLayout.vue` + assets Vite recompilados).
+
+- 🎨 **Balões iguais aos do chat com cliente** — mesmas cores (`bg-n-solid-blue` para o agente, `bg-n-slate-4` para os demais) e cantos arredondados `rounded-xl` com `rounded-br-sm`/`rounded-bl-sm`, replicando o `BaseBubble` da conversa normal.
+- 👤 **Avatar lateral** em cada mensagem (de quem enviou à esquerda, do agente atual à direita), como na conversa com cliente.
+- ✅ **Checks de entregue/lido iguais ao WhatsApp** — dois checks cinza (`i-lucide-check-check` + `text-n-slate-10`) = entregue; dois checks azuis (`text-[#7EB6FF]`) = lido (quando o destinatário abriu a conversa). Antes era `✓`/`✓✓` simples.
+- 📋 **Colar imagem com Ctrl+V** — agora funciona como no chat do cliente: cole um print/arquivo de imagem direto no input, aparece o preview acima do campo, e envia junto com o texto (ou sozinho). Continua funcionando o botão de clip (upload de arquivo).
 - **Arquivo:** `chatwoot-fix/InternalChatLayout.vue`
 
 ### v1.2 – Notificações Inteligentes (Recomendada)
