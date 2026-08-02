@@ -65,12 +65,19 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
   end
 
   def messages
-    @messages = @conversation.messages
+    # Retorna as 100 mensagens internas mais recentes, em ordem de exibição (antiga → nova).
+    # NOTA: o antigo `.order(created_at: :desc).limit(100).reverse` NÃO invertia a ordem —
+    # `.reverse` num ActiveRecord::Relation é no-op, então as novas vinham em cima.
+    # Agora: busca os ids das 100 mais recentes e devolve em ordem crescente (correto).
+    latest_ids = @conversation.messages
                               .where(message_type: :internal)
-                              .includes(:sender)
                               .order(created_at: :desc)
                               .limit(100)
-                              .reverse
+                              .pluck(:id)
+    @messages = @conversation.messages
+                              .where(message_type: :internal, id: latest_ids)
+                              .includes(:sender)
+                              .order(created_at: :asc)
     render json: @messages.map { |m| serialize_message(m) }
   end
 

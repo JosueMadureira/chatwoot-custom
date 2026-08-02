@@ -5,6 +5,7 @@ import { useStore } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import Avatar from 'next/avatar/Avatar.vue';
 import Icon from 'next/icon/Icon.vue';
+import NextButton from 'next/button/Button.vue';
 
 const accountId = useMapGetter('getCurrentAccountId');
 const currentUser = useMapGetter('getCurrentUser');
@@ -22,6 +23,9 @@ const selected = ref([]);
 const editingId = ref(null);
 const editContent = ref('');
 const pastedFiles = ref([]); // arquivos colados via Ctrl+V (imagens)
+const msgInput = ref(null); // textarea da caixa de texto (para auto-grow)
+let lastSentAt = 0; // timestamp do último envio — segura o scroll no fundo logo após enviar
+const pendingLocal = ref([]); // mensagens recém-enviadas ainda não confirmadas pelo polling
 let timer = null;
 let unreadTimer = null;
 
@@ -62,6 +66,18 @@ const scrollToBottom = async (smooth = false) => {
   el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
 };
 
+// Ajusta a altura da textarea conforme o conteúdo (com limite).
+const autoGrow = () => {
+  const el = msgInput.value;
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 96) + 'px';
+};
+
+// Ordena as mensagens em ordem de exibição (antiga → nova), independente da
+// ordem que o servidor devolver.
+const sortMsgs = arr => arr.slice().sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
+
 // Cola imagem com Ctrl+V (como no chat com cliente): lê arquivos do clipboard e
 // adiciona como anexo pendente (preview acima do input).
 const onPaste = e => {
@@ -92,8 +108,22 @@ const onScroll = () => {
 const loadMsgs = async id => {
   try {
     const r = await axios.get(`${BASE.value}/${id}/messages`);
-    messages.value = r.data || [];
-    if (stickToBottom) await scrollToBottom();
+    let next = Array.isArray(r.data) ? r.data : [];
+    // Anti-"mensagem some": se uma mensagem que acabamos de enviar ainda não
+    // veio na resposta do servidor, mantemos ela na lista (nunca some da tela).
+    if (pendingLocal.value.length) {
+      const ids = new Set(next.map(m => m.id));
+      pendingLocal.value.forEach(m => {
+        if (m.id != null && !ids.has(m.id) && !m.deleted) next.push(m);
+      });
+      pendingLocal.value = pendingLocal.value.filter(
+        m => ids.has(m.id) && !m.deleted
+      );
+    }
+    messages.value = sortMsgs(next);
+    // Garante que a última mensagem fica visível: quando estamos "grudados" no
+    // fundo OU logo após enviar, rola até o fim (a mensagem nova fica no fim).
+    if (stickToBottom || Date.now() - lastSentAt < 5000) await scrollToBottom();
   } catch(e) {}
 };
 
@@ -108,6 +138,7 @@ const openConv = async conv => {
 
 const fileInput = ref(null);
 const sending = ref(false);
+const canSend = computed(() => !!(newMsg.value.trim() || pastedFiles.value.length));
 
 const sendMsg = async () => {
   const fileList = [...(fileInput.value?.files || [])];
@@ -121,12 +152,19 @@ const sendMsg = async () => {
     const r = await axios.post(`${BASE.value}/${currentConv.value.id}/create_message`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
-    messages.value.push(r.data);
+    messages.value = sortMsgs([...messages.value, r.data]);
+    pendingLocal.value.push(r.data); // acompanha até o servidor confirmar
+    lastSentAt = Date.now();
     stickToBottom = true;
-    await scrollToBottom(true);
+    await scrollToBottom();
+    // Re-pin logo depois: se a mensagem ficou fora do viewport (ou a animação
+    // suave parou antes), garante que ela entre na área visível.
+    setTimeout(() => { stickToBottom = true; scrollToBottom(true); }, 120);
     newMsg.value = '';
     pastedFiles.value = [];
     if (fileInput.value) fileInput.value.value = '';
+    await nextTick();
+    autoGrow();
   } catch(e) { useAlert('Erro ao enviar'); }
   finally { sending.value = false; }
 };
@@ -309,28 +347,32 @@ const listName = conv => (conv.participants || []).filter(p => p.id !== currentU
         <p>Selecione uma conversa ou clique em <strong>+</strong> para iniciar</p>
       </div>
 
-      <div v-if="currentConv" class="px-4 py-3 border-t border-n-slate-3 bg-n-surface-1">
-        <!-- Preview dos arquivos colados via Ctrl+V -->
-        <div v-if="pastedFiles.length" class="flex flex-wrap gap-2 mb-2">
-          <div v-for="(pf, idx) in pastedFiles" :key="idx" class="relative">
-            <img :src="pf.thumb" class="size-16 object-cover rounded-lg border border-n-slate-4" />
-            <button
-              class="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-n-slate-12 text-white text-xs flex items-center justify-center hover:bg-n-ruby-9"
-              @click="removePasted(idx)"
-            >×</button>
+      <div v-if="currentConv" class="px-3 py-3 border-t border-n-slate-3 bg-n-surface-1">
+        <!-- Caixa de texto igual à do chat com cliente (ReplyBox) -->
+        <div class="relative border border-n-weak rounded-xl bg-n-solid-1 focus-within:border-woot-400 transition-colors">
+          <!-- Preview dos arquivos colados via Ctrl+V -->
+          <div v-if="pastedFiles.length" class="flex flex-wrap gap-2 px-3 pt-3">
+            <div v-for="(pf, idx) in pastedFiles" :key="idx" class="relative">
+              <img :src="pf.thumb" class="size-16 object-cover rounded-lg border border-n-slate-4" />
+              <button
+                class="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-n-slate-12 text-white text-xs flex items-center justify-center hover:bg-n-ruby-9"
+                @click="removePasted(idx)"
+              >×</button>
+            </div>
           </div>
-        </div>
-        <div class="flex items-end gap-2 bg-n-slate-2 rounded-2xl px-3 py-2 border border-n-slate-4 focus-within:border-woot-400 transition-colors">
-          <button class="flex items-center justify-center size-8 rounded-lg hover:bg-n-alpha-2 text-n-slate-9 flex-shrink-0" @click="triggerFile">
-            <fluent-icon icon="attach" size="18" />
-          </button>
-          <input ref="fileInput" type="file" multiple class="hidden" @change="sendMsg" />
-          <textarea v-model="newMsg" class="flex-1 bg-transparent text-sm text-n-slate-12 outline-none resize-none max-h-20 placeholder-n-slate-9"
-            placeholder="Digite sua mensagem..." rows="1" @keyup.enter.exact="sendMsg" @keydown.enter.exact.prevent/>
-          <button class="flex items-center justify-center size-8 rounded-lg transition-colors flex-shrink-0"
-            :class="newMsg.trim() || pastedFiles.length ? 'bg-woot-500 text-white hover:bg-woot-600' : 'text-n-slate-9'" :disabled="!newMsg.trim() && !fileInput?.files?.length && !pastedFiles.length" @click="sendMsg">
-            <fluent-icon icon="send" size="16" />
-          </button>
+          <!-- Editor -->
+          <div class="px-3 pt-2 pb-1">
+            <textarea ref="msgInput" v-model="newMsg" rows="1" class="w-full bg-transparent text-sm text-n-slate-12 outline-none resize-none max-h-24 placeholder-n-slate-9"
+              placeholder="Digite sua mensagem..." @input="autoGrow" @keyup.enter.exact="sendMsg" @keydown.enter.exact.prevent/>
+          </div>
+          <!-- Painel inferior: anexar + enviar -->
+          <div class="flex items-center justify-between px-2 pb-2">
+            <div class="flex items-center gap-1">
+              <NextButton v-tooltip.top-end="'Anexar arquivo'" icon="i-ph-paperclip" slate faded sm @click="triggerFile" />
+              <input ref="fileInput" type="file" multiple class="hidden" @change="sendMsg" />
+            </div>
+            <NextButton label="Enviar (↵)" color="blue" sm type="submit" :disabled="!canSend" @click="sendMsg" />
+          </div>
         </div>
       </div>
     </div>
