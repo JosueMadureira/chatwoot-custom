@@ -10,14 +10,14 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.14.4` | **Atual** — v4.14.3 + melhorias visuais do Chat Interno (balões/avatares iguais ao cliente, checks ✓✓ entregue/lido, colar imagem com Ctrl+V) |
-| `josuemadureira/chatwoot-custom:v4.14.3` | v4.14.2 + correção dos 3 bugs do Chat Interno |
+| `josuemadureira/chatwoot-custom:v4.14.4` | **Atual + EM PRODUÇÃO** (deploy 2026-08-02 22:30) — v4.14.3 + melhorias visuais do Chat Interno (balões/avatares iguais ao cliente, checks ✓✓ entregue/lido, colar imagem com Ctrl+V) |
+| `josuemadureira/chatwoot-custom:v4.14.3` | v4.14.2 + correção dos 3 bugs do Chat Interno (rollback da v4.14.4) |
 | `josuemadureira/chatwoot-custom:v4.14.2` | Produção em uso até 2026-08-02 (sem as correções) |
 | `josuemadureira/chatwoot-custom:v1.2` | Versão antiga (Notificações Inteligentes) |
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.14.3
+docker pull josuemadureira/chatwoot-custom:v4.14.4
 ```
 
 ---
@@ -133,7 +133,7 @@ NODE_ENV=production pnpm exec vite build
 O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.14.x`.
 
 1. Faça **backup do compose** antes de editar.
-2. No compose, troque `v4.14.2` → `v4.14.3` em `chatwoot_app` e `chatwoot_sidekiq`.
+2. No compose, troque a versão (`v4.14.3` → `v4.14.4`) em `chatwoot_app` e `chatwoot_sidekiq`.
 3. Suba apenas os serviços alterados (Postgres/Redis ficam intocados):
 
 ```bash
