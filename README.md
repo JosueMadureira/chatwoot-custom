@@ -28,6 +28,22 @@ docker pull josuemadureira/chatwoot-custom:v4.15.0
 
 ---
 
+## 🏷️ Releases no GitHub
+
+Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHub, com o histórico completo das mudanças:
+
+| Release | Destaque |
+|---|---|
+| [v4.15.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.15.0) — **Latest** | Edição de mensagens melhorada + duplo clique responde no chat do cliente |
+| [v4.14.9](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.14.9) | Feature **Responder** no Chat Interno (botão direito + duplo clique) |
+| [v4.14.8](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.14.8) | ROOT CAUSE do bug "msg some" (default_scope do Message) |
+| [v4.14.7](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.14.7) | Menu de contexto Editar/Excluir no Chat Interno |
+| [v4.14.6](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.14.6) | Fix ordem invertida das mensagens |
+| [v4.14.4](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.14.4) | Melhorias visuais do Chat Interno |
+| [v4.14.3](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.14.3) | Correção dos 3 bugs do Chat Interno |
+
+---
+
 ## ✨ Funcionalidades Implementadas
 
 ### v4.14.3 – Correção dos bugs do Chat Interno (2026-08-02)
