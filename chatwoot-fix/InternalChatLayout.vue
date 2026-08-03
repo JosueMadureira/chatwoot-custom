@@ -6,6 +6,8 @@ import { useAlert } from 'dashboard/composables';
 import Avatar from 'next/avatar/Avatar.vue';
 import Icon from 'next/icon/Icon.vue';
 import NextButton from 'next/button/Button.vue';
+import ContextMenu from 'dashboard/components/ui/ContextMenu.vue';
+import MenuItem from 'dashboard/components/widgets/conversation/contextMenu/menuItem.vue';
 
 const accountId = useMapGetter('getCurrentAccountId');
 const currentUser = useMapGetter('getCurrentUser');
@@ -22,6 +24,8 @@ const showPicker = ref(false);
 const selected = ref([]);
 const editingId = ref(null);
 const editContent = ref('');
+const contextMenu = ref(null); // mensagem aberta no menu de contexto (botão direito)
+const contextMenuPosition = ref({ x: 0, y: 0 });
 const pastedFiles = ref([]); // arquivos colados via Ctrl+V (imagens)
 const msgInput = ref(null); // textarea da caixa de texto (para auto-grow)
 let lastSentAt = 0; // timestamp do último envio — segura o scroll no fundo logo após enviar
@@ -191,6 +195,28 @@ const deleteMsg = async msg => {
   } catch(e) { useAlert(e.response?.data?.error || 'Erro ao excluir'); }
 };
 
+// Só as próprias mensagens dentro da janela de edição têm menu de editar/excluir
+// (mesmo critério do `canEdit`/`canDelete`). No chat do cliente não existe editar/
+// excluir porque a API do Meta/WhatsApp não permite — aqui no Chat Interno sim.
+const canManage = msg => canEdit(msg) || canDelete(msg);
+
+// Abre o menu de contexto no botão direito — mesma lógica/identidade do chat com
+// cliente: posiciona o menu em {x,y}, fecha no blur, ignora seleção de texto e
+// cliques em links/imagens (para permitir salvar imagem com o menu nativo).
+const openContextMenu = (e, msg) => {
+  if (e.target?.classList?.contains('skip-context-menu') ||
+      ['a', 'img'].includes(e.target?.tagName?.toLowerCase()) ||
+      (window.getSelection?.()?.toString() || '').length) return;
+  e.preventDefault();
+  contextMenuPosition.value = { x: e.pageX || e.clientX, y: e.pageY || e.clientY };
+  contextMenu.value = msg;
+};
+
+const closeContextMenu = () => {
+  contextMenu.value = null;
+  contextMenuPosition.value = { x: 0, y: 0 };
+};
+
 const toggleUser = id => {
   const idx = selected.value.indexOf(id);
   idx > -1 ? selected.value.splice(idx, 1) : selected.value.push(id);
@@ -285,7 +311,7 @@ const listName = conv => (conv.participants || []).filter(p => p.id !== currentU
               :class="msg.sender?.id === currentUser?.id
                 ? 'right-bubble ltr:rounded-br-sm rtl:rounded-bl-sm bg-n-solid-blue text-n-slate-12'
                 : 'left-bubble ltr:rounded-bl-sm rtl:rounded-br-sm bg-n-slate-4 text-n-slate-12'"
-              @click.right.prevent="msg.sender?.id === currentUser?.id && !msg.deleted ? (canEdit(msg) ? startEdit(msg) : null) : null">
+              @contextmenu="canManage(msg) ? openContextMenu($event, msg) : null">
               <!-- Edit mode -->
               <div v-if="editingId === msg.id">
                 <textarea v-model="editContent" class="w-full bg-transparent border rounded p-1 text-sm outline-none resize-none"
@@ -330,11 +356,6 @@ const listName = conv => (conv.participants || []).filter(p => p.id !== currentU
                 </span>
               </div>
             </div>
-            <!-- Edit/Delete buttons: visíveis no hover, abaixo da bolha -->
-            <div v-if="msg.sender?.id === currentUser?.id && !msg.deleted" class="flex gap-2 text-xxs opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 ltr:mr-1 rtl:ml-1">
-              <button v-if="canEdit(msg)" class="underline text-n-slate-10 hover:text-n-slate-12" @click.stop="startEdit(msg)">editar</button>
-              <button v-if="canDelete(msg)" class="underline text-n-slate-10 hover:text-n-slate-12" @click.stop="deleteMsg(msg)">excluir</button>
-            </div>
           </div>
           <div v-if="msg.sender?.id === currentUser?.id" class="flex items-end shrink-0 ltr:ml-2 rtl:mr-2">
             <Avatar :name="currentUser?.name" :src="currentUser?.avatar_url" :size="24" class="rounded-full" />
@@ -346,6 +367,31 @@ const listName = conv => (conv.participants || []).filter(p => p.id !== currentU
         <fluent-icon icon="chat" size="40" class="text-n-slate-8" />
         <p>Selecione uma conversa ou clique em <strong>+</strong> para iniciar</p>
       </div>
+
+      <!-- Menu de contexto (botão direito) igual ao chat com cliente: Editar/Excluir.
+           No chat do cliente não existem Editar/Excluir por causa das regras da API
+           do Meta — aqui no Chat Interno sim, com a mesma identidade visual. -->
+      <ContextMenu
+        v-if="contextMenu"
+        :x="contextMenuPosition.x"
+        :y="contextMenuPosition.y"
+        @close="closeContextMenu"
+      >
+        <div class="menu-container">
+          <MenuItem
+            v-if="canEdit(contextMenu)"
+            :option="{ icon: 'edit', label: 'Editar' }"
+            variant="icon"
+            @click.stop="startEdit(contextMenu); closeContextMenu()"
+          />
+          <MenuItem
+            v-if="canDelete(contextMenu)"
+            :option="{ icon: 'delete', label: 'Excluir' }"
+            variant="icon"
+            @click.stop="deleteMsg(contextMenu); closeContextMenu()"
+          />
+        </div>
+      </ContextMenu>
 
       <div v-if="currentConv" class="px-3 py-3 border-t border-n-slate-3 bg-n-surface-1">
         <!-- Caixa de texto igual à do chat com cliente (ReplyBox) -->
@@ -407,3 +453,17 @@ const listName = conv => (conv.participants || []).filter(p => p.id !== currentU
     </div>
   </div>
 </template>
+
+<style scoped lang="scss">
+.menu-container {
+  @apply p-1 bg-n-background shadow-xl rounded-md;
+
+  hr:first-child {
+    @apply hidden;
+  }
+
+  hr {
+    @apply m-1 border-b border-solid border-n-strong;
+  }
+}
+</style>

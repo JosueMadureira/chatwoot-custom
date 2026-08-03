@@ -10,16 +10,17 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.14.6` | **Atual + EM PRODUÇÃO** (deploy 2026-08-02 23:40) — v4.14.5 + correção da ORDEM das mensagens (antiga→nova) |
+| `josuemadureira/chatwoot-custom:v4.14.7` | **Atual + EM PRODUÇÃO** (deploy 2026-08-03 00:1x) — v4.14.6 + menu de contexto (botão direito) Editar/Excluir igual ao chat com cliente |
+| `josuemadureira/chatwoot-custom:v4.14.6` | v4.14.5 + correção da ORDEM das mensagens (antiga→nova) |
 | `josuemadureira/chatwoot-custom:v4.14.5` | v4.14.4 + fix do bug da mensagem que sumia (scroll robusto + merge safeguard) + caixa de texto nova (igual ao ReplyBox do cliente) |
 | `josuemadureira/chatwoot-custom:v4.14.4` | v4.14.3 + melhorias visuais do Chat Interno (balões/avatares iguais ao cliente, checks ✓✓ entregue/lido, colar imagem com Ctrl+V) |
-| `josuemadureira/chatwoot-custom:v4.14.3` | v4.14.2 + correção dos 3 bugs do Chat Interno (rollback da v4.14.4) |
-| `josuemadureira/chatwoot-custom:v4.14.2` | Produção em uso até 2026-08-02 (sem as correções) |
+| `josuemadureira/chatwoot-custom:v4.14.3` | v4.14.2 + correção dos 3 bugs do Chat Interno |
+| `josuemadureira/chatwoot-custom:v4.14.2` | Produção em uso até 2026-08-02 (sem as correções) — base dos overlays |
 | `josuemadureira/chatwoot-custom:v1.2` | Versão antiga (Notificações Inteligentes) |
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.14.6
+docker pull josuemadureira/chatwoot-custom:v4.14.7
 ```
 
 ---
@@ -84,6 +85,16 @@ Três bugs foram corrigidos:
 
 > ⚠️ **LIÇÃO (importante):** em query de controller, **NUNCA** usar `.reverse` num `ActiveRecord::Relation` (é no-op). Para pegar os N mais recentes em ordem de exibição, usar subquery `latest_ids` (a ordem `desc` é feita no SQL; depois re-ordena `asc`).
 
+### v4.14.7 – Menu de contexto (botão direito) Editar/Excluir (2026-08-03)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.14.6`. Só o frontend mudou (`InternalChatLayout.vue` + assets Vite recompilados).
+
+- 🖱️ **Editar/Excluir via menu de contexto** — ao clicar com o **botão direito** em uma mensagem sua, abre um menu no mesmo estilo do chat com cliente (componentes `ContextMenu` + `MenuItem` reutilizados: fundo `bg-n-background shadow-xl rounded-md`, item com hover `bg-n-brand text-white`, ícones `edit`/`delete`).
+- O menu aparece **só nas mensagens do próprio agente** dentro da janela de edição (15 min). Em mensagens de outros (ou antigas), o menu nativo do navegador continua funcionando.
+- Removidos os antigos links "editar/excluir" que apareciam no hover.
+- ⚠️ **Por que o chat do cliente não tem Editar/Excluir:** a API do Meta/WhatsApp **não permite** editar/excluir mensagens de WhatsApp — por isso o menu do cliente só tem copiar/responder/etc. O Chat Interno (mensagens `message_type: :internal`, banco próprio) **pode**, então usa a mesma identidade visual com as opções de edição.
+- **Arquivo:** `chatwoot-fix/InternalChatLayout.vue`
+
 ### v1.2 – Notificações Inteligentes (Recomendada)
 - **Título da notificação**: Nome do contato (ex: "João Silva")
 - **Corpo da notificação**: Prévia real da última mensagem recebida
@@ -124,11 +135,11 @@ COPY public/vite/ /app/public/vite/
 #
 # 2. Build da imagem
 cd chatwoot-fix
-docker build -t josuemadureira/chatwoot-custom:v4.14.6 .
+docker build -t josuemadureira/chatwoot-custom:v4.14.7 .
 
 # 3. Push para o Docker Hub
 docker login -u josuemadureira
-docker push josuemadureira/chatwoot-custom:v4.14.6
+docker push josuemadureira/chatwoot-custom:v4.14.7
 ```
 
 ---
@@ -159,7 +170,7 @@ NODE_ENV=production pnpm exec vite build
 O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.14.x`.
 
 1. Faça **backup do compose** antes de editar.
-2. No compose, troque a versão (`v4.14.5` → `v4.14.6`) em `chatwoot_app` e `chatwoot_sidekiq`.
+2. No compose, troque a versão (`v4.14.6` → `v4.14.7`) em `chatwoot_app` e `chatwoot_sidekiq`.
 3. Suba apenas os serviços alterados (Postgres/Redis ficam intocados):
 
 ```bash
@@ -174,9 +185,9 @@ docker compose -f <caminho-compose> -p chatwoot up -d chatwoot_app chatwoot_side
 
 | Pasta/Arquivo | Conteúdo |
 |---|---|
-| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.14.6 |
+| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.14.7 |
 | `chatwoot-fix/internal_chat_controller.rb` | Controller corrigido (bugs 1 e 2 + fix de ordem `latest_ids`) |
-| `chatwoot-fix/InternalChatLayout.vue` | Componente corrigido (scroll + merge + caixa nova + `sortMsgs`) — referência |
+| `chatwoot-fix/InternalChatLayout.vue` | Componente corrigido (scroll + merge + caixa nova + `sortMsgs` + menu de contexto) — referência |
 | `README.md` | Este documento |
 
 ---
