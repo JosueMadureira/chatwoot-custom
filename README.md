@@ -10,7 +10,9 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.14.8` | **Atual + EM PRODUÇÃO** (deploy 2026-08-03 11:40) — v4.14.7 + ROOT CAUSE do "msg some em conversa de 2 pessoas" (default_scope do Message anulava o `.order` → fix `.reorder`) |
+| `josuemadureira/chatwoot-custom:v4.15.0` | **Atual + EM PRODUÇÃO** (deploy 2026-08-03) — v4.14.9 + melhoria da edição (foco/Enter/Esc/botões, sem conflito com duplo clique e corretor) + **duplo clique responde no chat do cliente** |
+| `josuemadureira/chatwoot-custom:v4.14.9` | v4.14.8 + feature **Responder** no Chat Interno (botão direito + duplo clique, citação na bolha) + fix do bug que zerava a lista (serialize usava `@conversation` nil no `index`) |
+| `josuemadureira/chatwoot-custom:v4.14.8` | v4.14.7 + ROOT CAUSE do "msg some em conversa de 2 pessoas" (default_scope do Message anulava o `.order` → fix `.reorder`) |
 | `josuemadureira/chatwoot-custom:v4.14.7` | v4.14.6 + menu de contexto (botão direito) Editar/Excluir igual ao chat com cliente |
 | `josuemadureira/chatwoot-custom:v4.14.6` | v4.14.5 + correção da ORDEM das mensagens (antiga→nova) |
 | `josuemadureira/chatwoot-custom:v4.14.5` | v4.14.4 + fix do bug da mensagem que sumia (scroll robusto + merge safeguard) + caixa de texto nova (igual ao ReplyBox do cliente) |
@@ -21,7 +23,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.14.8
+docker pull josuemadureira/chatwoot-custom:v4.15.0
 ```
 
 ---
@@ -109,6 +111,28 @@ Três bugs foram corrigidos:
 
 > ⚠️ **LIÇÃO (importante):** quando o model tiver `default_scope` de ordenação, **NUNCA** usar `.order` em query de controller — usar **`.reorder`** (`order()` acrescenta, `reorder()` substitui). É o mesmo tipo de pegadinha do `.reverse` (que era no-op).
 
+### v4.14.9 – Feature "Responder" no Chat Interno (2026-08-03)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.14.8`. Backend + frontend (`internal_chat_controller.rb` + `InternalChatLayout.vue`).
+
+- 💬 **Responder qualquer mensagem** do Chat Interno (suas ou da colega), de 2 formas:
+  - **Botão direito** → menu com **Responder** (primeiro item, ícone `arrow-reply`) — abre para qualquer mensagem;
+  - **Duplo clique** na mensagem → inicia o reply direto.
+- **Barra "Respondendo a \<nome\>: \<texto\>"** no composer (igual ao `ReplyToMessage.vue` do cliente), com X para cancelar.
+- **Citação dentro da bolha** da mensagem enviada (`bg-n-alpha-black1`), clicável → **rola até a mensagem original**.
+- **Backend:** `create_message` grava `content_attributes.in_reply_to` (helper `parse_content_attributes`, aceita JSON string do FormData); `serialize_message` inclui `replied_to` (helper `serialize_replied_to` — `{id, content, deleted, created_at, sender}`).
+- 🐛 **Bug de deploy:** a 1ª build do v4.14.9 zerou a lista do Chat Interno ("Nenhuma conversa ainda") — `serialize_replied_to` usava `@conversation.messages` e o `@conversation` é `nil` na action `index` (que itera conversas locais, sem instanciar). **Fix:** `msg.conversation.messages` — funciona em qualquer contexto. ⚠️ **LIÇÃO: helpers de serialização não podem depender de `@conversation` quando chamados por actions que não o setam.**
+- **Arquivos:** `chatwoot-fix/internal_chat_controller.rb`, `chatwoot-fix/InternalChatLayout.vue`
+
+### v4.15.0 – Melhoria da edição + duplo clique no chat do cliente (2026-08-03)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.14.9`. Só o frontend mudou (`InternalChatLayout.vue` + `Message.vue` + assets Vite recompilados).
+
+- 🖱️ **Edição sem conflito:** durante a edição de uma mensagem, o **duplo clique** agora seleciona texto (não ativa reply) e o **botão direito** abre o **corretor ortográfico** do SO (o menu Editar/Excluir/Responder fica desabilitado). Handlers `onBubbleContextMenu`/`onBubbleDblClick` ignoram a mensagem em edição.
+- ✏️ **Edição caprichada:** barra **"Editando mensagem"** com ícone, foco automático com cursor no fim, textarea com auto-grow, **Enter salva / Esc cancela**, botões `NextButton` (Salvar azul com loading + Cancelar ghost). Ao editar, limpa reply pendente (edição tem prioridade).
+- 📱 **Duplo clique responde no chat do cliente:** `Message.vue` (components-next) ganhou `@dblclick` na bolha → `handleReplyTo()` — mesma regra do menu "Responder" (`replyTo`), ignorando links/imagens/`.skip-context-menu`. O Chat Interno já tinha; agora o cliente também.
+- **Arquivos:** `chatwoot-fix/InternalChatLayout.vue`, `chatwoot-fix/message/Message.vue`
+
 ### v1.2 – Notificações Inteligentes (Recomendada)
 - **Título da notificação**: Nome do contato (ex: "João Silva")
 - **Corpo da notificação**: Prévia real da última mensagem recebida
@@ -149,11 +173,11 @@ COPY public/vite/ /app/public/vite/
 #
 # 2. Build da imagem
 cd chatwoot-fix
-docker build -t josuemadureira/chatwoot-custom:v4.14.8 .
+docker build -t josuemadureira/chatwoot-custom:v4.15.0 .
 
 # 3. Push para o Docker Hub
 docker login -u josuemadureira
-docker push josuemadureira/chatwoot-custom:v4.14.8
+docker push josuemadureira/chatwoot-custom:v4.15.0
 ```
 
 ---
@@ -184,7 +208,7 @@ NODE_ENV=production pnpm exec vite build
 O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.14.x`.
 
 1. Faça **backup do compose** antes de editar.
-2. No compose, troque a versão (`v4.14.7` → `v4.14.8`) em `chatwoot_app` e `chatwoot_sidekiq`.
+2. No compose, troque a versão (`v4.14.9` → `v4.15.0`) em `chatwoot_app` e `chatwoot_sidekiq`.
 3. Suba apenas os serviços alterados (Postgres/Redis ficam intocados):
 
 ```bash
@@ -199,9 +223,10 @@ docker compose -f <caminho-compose> -p chatwoot up -d chatwoot_app chatwoot_side
 
 | Pasta/Arquivo | Conteúdo |
 |---|---|
-| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.14.8 |
-| `chatwoot-fix/internal_chat_controller.rb` | Controller corrigido (bugs 1 e 2 + `latest_ids` com `.reorder` — fix do default_scope) |
-| `chatwoot-fix/InternalChatLayout.vue` | Componente corrigido (scroll + merge + caixa nova + `sortMsgs` + menu de contexto) — referência |
+| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.15.0 |
+| `chatwoot-fix/internal_chat_controller.rb` | Controller corrigido (bugs 1 e 2 + `latest_ids` com `.reorder` + reply `in_reply_to`/`replied_to`) |
+| `chatwoot-fix/InternalChatLayout.vue` | Componente corrigido (scroll + merge + caixa nova + menu de contexto + **Responder** + edição melhorada) — referência |
+| `chatwoot-fix/message/Message.vue` | Componente do chat do cliente com **duplo clique para responder** — referência |
 | `README.md` | Este documento |
 
 ---

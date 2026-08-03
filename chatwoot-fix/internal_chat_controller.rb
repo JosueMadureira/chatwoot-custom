@@ -89,6 +89,7 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
       account_id: Current.account.id,
       inbox_id: @conversation.inbox_id,
       content: params[:content] || params[:message]&.dig(:content),
+      content_attributes: parse_content_attributes,
       message_type: :internal,
       sender: Current.user,
       sender_type: 'User'
@@ -225,6 +226,41 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
                             .find(params[:id])
   end
 
+  # Recebe `content_attributes` (JSON string vindo do FormData do frontend) e/ou
+  # `in_reply_to` (id da mensagem respondida) e devolve um hash seguro para salvar.
+  def parse_content_attributes
+    attrs = params[:content_attributes]
+    attrs = JSON.parse(attrs) if attrs.is_a?(String)
+    attrs = (attrs || {}).with_indifferent_access
+    attrs[:in_reply_to] = params[:in_reply_to].to_i if params[:in_reply_to].present?
+    attrs
+  rescue JSON::ParserError
+    {}
+  end
+
+  # Serializa a mensagem respondida (reply/quote), para o frontend renderizar a
+  # citação dentro da bolha. Se não houver in_reply_to, retorna nil.
+  def serialize_replied_to(msg)
+    in_reply_to_id = msg.content_attributes['in_reply_to']
+    return nil if in_reply_to_id.blank?
+
+    original = msg.conversation.messages.find_by(id: in_reply_to_id)
+    return nil if original.blank?
+
+    {
+      id: original.id,
+      content: original.content,
+      deleted: original.content_attributes[:deleted],
+      created_at: original.created_at.to_i,
+      sender: original.sender.is_a?(User) ? {
+        id: original.sender.id,
+        name: original.sender.name,
+        email: original.sender.email,
+        avatar_url: original.sender.avatar_url
+      } : nil
+    }
+  end
+
   def find_or_create_internal_inbox
     inbox = Current.account.inboxes.find_by(name: 'Chat Interno')
     return inbox if inbox.present?
@@ -322,6 +358,7 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
       edited_at: msg.edited_at&.to_i,
       edited: msg.content_attributes[:edited],
       deleted: msg.content_attributes[:deleted],
+      replied_to: serialize_replied_to(msg),
       read_by: msg.content_attributes['read_by'] || [],
       sender: msg.sender.is_a?(User) ? {
         id: msg.sender.id,

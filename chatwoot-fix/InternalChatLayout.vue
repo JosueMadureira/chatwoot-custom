@@ -24,8 +24,11 @@ const showPicker = ref(false);
 const selected = ref([]);
 const editingId = ref(null);
 const editContent = ref('');
+const editInput = ref(null); // textarea da edição de mensagem (auto-grow + foco)
+const savingEdit = ref(false);
 const contextMenu = ref(null); // mensagem aberta no menu de contexto (botão direito)
 const contextMenuPosition = ref({ x: 0, y: 0 });
+const replyToMsg = ref(null); // mensagem que está sendo respondida (quote no composer)
 const pastedFiles = ref([]); // arquivos colados via Ctrl+V (imagens)
 const msgInput = ref(null); // textarea da caixa de texto (para auto-grow)
 let lastSentAt = 0; // timestamp do último envio — segura o scroll no fundo logo após enviar
@@ -151,6 +154,8 @@ const sendMsg = async () => {
   try {
     const formData = new FormData();
     if (newMsg.value.trim()) formData.append('content', newMsg.value.trim());
+    // Se estiver respondendo uma mensagem, guarda o id citado (in_reply_to)
+    if (replyToMsg.value?.id) formData.append('content_attributes', JSON.stringify({ in_reply_to: replyToMsg.value.id }));
     for (const f of fileList) formData.append('attachments[]', f);
     pastedFiles.value.forEach(pf => formData.append('attachments[]', pf.file));
     const r = await axios.post(`${BASE.value}/${currentConv.value.id}/create_message`, formData, {
@@ -166,6 +171,7 @@ const sendMsg = async () => {
     setTimeout(() => { stickToBottom = true; scrollToBottom(true); }, 120);
     newMsg.value = '';
     pastedFiles.value = [];
+    replyToMsg.value = null; // reply enviado → limpa o quote do composer
     if (fileInput.value) fileInput.value.value = '';
     await nextTick();
     autoGrow();
@@ -177,14 +183,48 @@ const triggerFile = () => fileInput.value?.click();
 
 const isImage = name => /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(name);
 
-const startEdit = msg => { editingId.value = msg.id; editContent.value = msg.content; };
+const startEdit = msg => {
+  cancelReply(); // edição tem prioridade: limpa qualquer quote de resposta
+  editingId.value = msg.id;
+  editContent.value = msg.content;
+  nextTick(() => {
+    const el = editInput.value;
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length); // cursor no fim
+    growEdit();
+  });
+};
 const saveEdit = async msg => {
+  if (savingEdit.value) return;
+  savingEdit.value = true;
   try {
-    const r = await axios.put(`${BASE.value}/${currentConv.value.id}/update_message`, { message_id: msg.id, content: editContent.value });
+    const r = await axios.put(`${BASE.value}/${currentConv.value.id}/update_message`, { message_id: msg.id, content: editContent.value.trim() });
     const idx = messages.value.findIndex(m => m.id === msg.id);
     if (idx !== -1) messages.value[idx] = r.data;
     editingId.value = null;
   } catch(e) { useAlert(e.response?.data?.error || 'Erro ao editar'); }
+  finally { savingEdit.value = false; }
+};
+
+// Ajusta a altura da textarea da edição conforme o conteúdo (com limite).
+const growEdit = () => {
+  const el = editInput.value;
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+};
+
+// Durante a edição, o duplo clique serve para selecionar texto e o botão direito
+// abre o corretor ortográfico do SO — então desabilitamos reply e menu de contexto
+// nessa mensagem enquanto a tela de edição estiver aberta.
+const onBubbleContextMenu = (e, msg) => {
+  if (editingId.value === msg.id) return;
+  if (canReply(msg)) openContextMenu(e, msg);
+};
+const onBubbleDblClick = msg => {
+  if (editingId.value === msg.id) return;
+  if (canReply(msg)) startReply(msg);
 };
 
 const deleteMsg = async msg => {
@@ -215,6 +255,21 @@ const openContextMenu = (e, msg) => {
 const closeContextMenu = () => {
   contextMenu.value = null;
   contextMenuPosition.value = { x: 0, y: 0 };
+};
+
+// Reply (Responder): via menu de contexto (botão direito) ou duplo clique — mesmo
+// visual do chat com cliente. Vale para qualquer mensagem (não só as próprias).
+const canReply = msg => !msg.deleted && (msg.content || msg.attachments?.length);
+const startReply = msg => {
+  replyToMsg.value = msg;
+  msgInput.value?.focus();
+};
+const cancelReply = () => { replyToMsg.value = null; };
+
+// Rola até a mensagem original quando clica na citação do reply.
+const scrollToMessage = id => {
+  const el = document.getElementById(`internal-msg-${id}`);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
 
 const toggleUser = id => {
@@ -299,7 +354,7 @@ const listName = conv => (conv.participants || []).filter(p => p.id !== currentU
       </div>
 
       <div v-if="currentConv" ref="msgContainer" class="flex-1 overflow-y-auto px-4 py-4 space-y-2" @scroll="onScroll">
-        <div v-for="msg in messages" :key="msg.id" class="flex w-full mb-2" :class="msg.sender?.id === currentUser?.id ? 'justify-end' : 'justify-start'">
+        <div v-for="msg in messages" :key="msg.id" :id="`internal-msg-${msg.id}`" class="flex w-full mb-2" :class="msg.sender?.id === currentUser?.id ? 'justify-end' : 'justify-start'">
           <!-- Avatar lateral (igual à conversa com cliente) -->
           <div v-if="msg.sender?.id !== currentUser?.id" class="flex items-end shrink-0 ltr:mr-2 rtl:ml-2">
             <Avatar :name="msg.sender?.name" :src="msg.sender?.avatar_url" :size="24" class="rounded-full" />
@@ -311,14 +366,33 @@ const listName = conv => (conv.participants || []).filter(p => p.id !== currentU
               :class="msg.sender?.id === currentUser?.id
                 ? 'right-bubble ltr:rounded-br-sm rtl:rounded-bl-sm bg-n-solid-blue text-n-slate-12'
                 : 'left-bubble ltr:rounded-bl-sm rtl:rounded-br-sm bg-n-slate-4 text-n-slate-12'"
-              @contextmenu="canManage(msg) ? openContextMenu($event, msg) : null">
-              <!-- Edit mode -->
+              @contextmenu="onBubbleContextMenu($event, msg)"
+              @dblclick="onBubbleDblClick(msg)">
+              <!-- Citação da mensagem respondida (reply) — mesmo visual do chat com cliente -->
+              <div v-if="msg.replied_to" class="p-2 -mx-1 mb-2 rounded-lg cursor-pointer bg-n-alpha-black1" @click="scrollToMessage(msg.replied_to.id)">
+                <div class="text-xxs font-semibold text-woot-500">{{ msg.replied_to.sender?.name }}</div>
+                <div class="text-xs text-n-slate-11 line-clamp-2 break-words">{{ msg.replied_to.deleted ? 'Mensagem apagada' : msg.replied_to.content }}</div>
+              </div>
+              <!-- Edit mode: barra "Editando mensagem", Enter salva, Esc cancela.
+                   Duplo clique/botão direito ficam desabilitados nessa mensagem
+                   (seleção de texto e corretor ortográfico funcionam normalmente). -->
               <div v-if="editingId === msg.id">
-                <textarea v-model="editContent" class="w-full bg-transparent border rounded p-1 text-sm outline-none resize-none"
-                  :class="msg.sender?.id === currentUser?.id ? 'text-n-slate-12 border-n-slate-5' : 'text-n-slate-12 border-n-slate-5'" rows="2"/>
-                <div class="flex gap-2 justify-end text-xs mt-1">
-                  <button class="underline opacity-70 hover:opacity-100" @click="saveEdit(msg)">Salvar</button>
-                  <button class="underline opacity-70 hover:opacity-100" @click="editingId = null">Cancelar</button>
+                <div class="flex items-center gap-1 mb-1.5 text-xs text-woot-500">
+                  <fluent-icon icon="edit" size="14" />
+                  <span class="font-medium">Editando mensagem</span>
+                </div>
+                <textarea
+                  ref="editInput"
+                  v-model="editContent"
+                  rows="1"
+                  class="w-full bg-n-solid-1 border border-n-slate-5 rounded-lg p-2 text-sm outline-none resize-none transition-colors focus:border-woot-400"
+                  @input="growEdit"
+                  @keydown.enter.exact.prevent="saveEdit(msg)"
+                  @keydown.esc="editingId = null"
+                />
+                <div class="flex items-center justify-end gap-1.5 mt-1.5">
+                  <NextButton variant="ghost" size="xs" label="Cancelar" @click="editingId = null" />
+                  <NextButton color="blue" size="xs" label="Salvar" :isLoading="savingEdit" @click="saveEdit(msg)" />
                 </div>
               </div>
               <!-- Normal message -->
@@ -379,6 +453,11 @@ const listName = conv => (conv.participants || []).filter(p => p.id !== currentU
       >
         <div class="menu-container">
           <MenuItem
+            :option="{ icon: 'arrow-reply', label: 'Responder' }"
+            variant="icon"
+            @click.stop="startReply(contextMenu); closeContextMenu()"
+          />
+          <MenuItem
             v-if="canEdit(contextMenu)"
             :option="{ icon: 'edit', label: 'Editar' }"
             variant="icon"
@@ -396,6 +475,18 @@ const listName = conv => (conv.participants || []).filter(p => p.id !== currentU
       <div v-if="currentConv" class="px-3 py-3 border-t border-n-slate-3 bg-n-surface-1">
         <!-- Caixa de texto igual à do chat com cliente (ReplyBox) -->
         <div class="relative border border-n-weak rounded-xl bg-n-solid-1 focus-within:border-woot-400 transition-colors">
+          <!-- Preview da mensagem que está sendo respondida (igual ReplyToMessage do cliente) -->
+          <div v-if="replyToMsg" class="mx-2 mt-2 bg-n-slate-9/10 rounded-md py-1 pl-2 pr-1 text-xs flex items-center gap-1.5">
+            <fluent-icon class="flex-shrink-0" icon="arrow-reply" size="14" />
+            <div class="flex-grow min-w-0 gap-1 mt-px text-xs truncate">
+              <span class="text-n-slate-10">Respondendo a</span>
+              <span class="font-semibold text-n-slate-12">{{ replyToMsg.sender?.name }}</span>:
+              <span class="text-n-slate-11">{{ replyToMsg.deleted ? 'Mensagem apagada' : replyToMsg.content }}</span>
+            </div>
+            <button class="flex-shrink-0 text-n-slate-10 hover:text-n-slate-12" @click="cancelReply">
+              <fluent-icon icon="dismiss" size="14" />
+            </button>
+          </div>
           <!-- Preview dos arquivos colados via Ctrl+V -->
           <div v-if="pastedFiles.length" class="flex flex-wrap gap-2 px-3 pt-3">
             <div v-for="(pf, idx) in pastedFiles" :key="idx" class="relative">
