@@ -66,18 +66,21 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
 
   def messages
     # Retorna as 100 mensagens internas mais recentes, em ordem de exibição (antiga → nova).
-    # NOTA: o antigo `.order(created_at: :desc).limit(100).reverse` NÃO invertia a ordem —
-    # `.reverse` num ActiveRecord::Relation é no-op, então as novas vinham em cima.
-    # Agora: busca os ids das 100 mais recentes e devolve em ordem crescente (correto).
+    # NOTA 1 (v4.14.6): `.reverse` num ActiveRecord::Relation é no-op — nunca usar.
+    # NOTA 2 (v4.14.8): usar `.reorder` e NÃO `.order` — o model Message tem
+    # `default_scope { order(created_at: :asc) }`, que ANULA o `.order(created_at: :desc)`
+    # (em Rails, order() acrescenta, não substitui) e fazia o `limit(100)` retornar as
+    # 100 MAIS ANTIGAS → em conversas com >100 msgs, as novas sumiam (bug da conversa de 2
+    # pessoas, 4480). `.reorder` SUBSTITUI o default_scope.
     latest_ids = @conversation.messages
                               .where(message_type: :internal)
-                              .order(created_at: :desc)
+                              .reorder(created_at: :desc)
                               .limit(100)
                               .pluck(:id)
     @messages = @conversation.messages
                               .where(message_type: :internal, id: latest_ids)
                               .includes(:sender)
-                              .order(created_at: :asc)
+                              .reorder(created_at: :asc)
     render json: @messages.map { |m| serialize_message(m) }
   end
 

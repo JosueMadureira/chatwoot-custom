@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.14.7` | **Atual + EM PRODUÇÃO** (deploy 2026-08-03 00:1x) — v4.14.6 + menu de contexto (botão direito) Editar/Excluir igual ao chat com cliente |
+| `josuemadureira/chatwoot-custom:v4.14.8` | **Atual + EM PRODUÇÃO** (deploy 2026-08-03 11:40) — v4.14.7 + ROOT CAUSE do "msg some em conversa de 2 pessoas" (default_scope do Message anulava o `.order` → fix `.reorder`) |
+| `josuemadureira/chatwoot-custom:v4.14.7` | v4.14.6 + menu de contexto (botão direito) Editar/Excluir igual ao chat com cliente |
 | `josuemadureira/chatwoot-custom:v4.14.6` | v4.14.5 + correção da ORDEM das mensagens (antiga→nova) |
 | `josuemadureira/chatwoot-custom:v4.14.5` | v4.14.4 + fix do bug da mensagem que sumia (scroll robusto + merge safeguard) + caixa de texto nova (igual ao ReplyBox do cliente) |
 | `josuemadureira/chatwoot-custom:v4.14.4` | v4.14.3 + melhorias visuais do Chat Interno (balões/avatares iguais ao cliente, checks ✓✓ entregue/lido, colar imagem com Ctrl+V) |
@@ -20,7 +21,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.14.7
+docker pull josuemadureira/chatwoot-custom:v4.14.8
 ```
 
 ---
@@ -36,8 +37,10 @@ Três bugs foram corrigidos:
 #### 🐛 Bug 1 — Mensagem some no Chat Interno (só aparece na notificação)
 - **Sintoma:** em conversas internas com mais de 100 mensagens, as novas mensagens não aparecem no chat — só chegam via notificação.
 - **Causa:** a action `messages` usava `.order(created_at: :asc).limit(100)` → retornava as **100 mensagens mais antigas**, escondendo as novas.
-- **Correção final (v4.14.6):** subquery `latest_ids` — busca os ids das **100 mais recentes** (`order(created_at: :desc).limit(100).pluck(:id)`) e devolve `.where(id: latest_ids).order(created_at: :asc)`, ou seja, as 100 mais recentes **em ordem de exibição (antiga → nova)**.
-- ⚠️ **Lição:** o primeiro fix usou `.order(created_at: :desc).limit(100).reverse`, mas `.reverse` num `ActiveRecord::Relation` é **no-op** — não invertia nada, então as novas vinham em cima. **NUNCA usar `.reverse` em query de controller.**
+- **Correção final (v4.14.8):** subquery `latest_ids` busca os ids das **100 mais recentes** e devolve em ordem de exibição (antiga → nova). **Dois ajustes obrigatórios:**
+  1. **v4.14.6** — `.order(created_at: :desc).limit(100).pluck(:id)`: usar subquery `latest_ids` + re-ordenar `asc` (o `.reverse` num `ActiveRecord::Relation` é no-op).
+  2. **v4.14.8** — trocar `.order` por **`.reorder`** no `latest_ids`: o model `Message` tem `default_scope { order(created_at: :asc) }`, que **anulava** o `.order(created_at: :desc)` (em Rails, `order()` acrescenta, não substitui) e fazia o `limit(100)` voltar a retornar as 100 **mais antigas** — por isso o bug reaparecia em conversas >100 msgs (a de 2 pessoas).
+- ⚠️ **Lições:** (1) **NUNCA** usar `.reverse` em query de controller (no-op); (2) se o model tiver `default_scope` de ordenação, **usar `.reorder`, nunca `.order`**.
 - **Arquivo:** `chatwoot-fix/internal_chat_controller.rb`
 
 #### 🐛 Bug 2 — Preferência de notificação re-marca sozinha (enche o e-mail)
@@ -95,6 +98,17 @@ Três bugs foram corrigidos:
 - ⚠️ **Por que o chat do cliente não tem Editar/Excluir:** a API do Meta/WhatsApp **não permite** editar/excluir mensagens de WhatsApp — por isso o menu do cliente só tem copiar/responder/etc. O Chat Interno (mensagens `message_type: :internal`, banco próprio) **pode**, então usa a mesma identidade visual com as opções de edição.
 - **Arquivo:** `chatwoot-fix/InternalChatLayout.vue`
 
+### v4.14.8 – Root cause do "msg some em conversa de 2 pessoas" (2026-08-03)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.14.7`. Só o backend mudou (`internal_chat_controller.rb`).
+
+- 🐛 **Sintoma:** as mensagens sumiam ~3s após enviar **apenas na conversa de 2 pessoas** (Vanessa↔Iara, conversation id 4480, com **132 msgs internas**) — a única conversa com **>100 msgs**. As demais (com menos de 100) funcionavam.
+- **Causa raiz:** o model `Message` tem `default_scope { order(created_at: :asc) }`. O `latest_ids` do controller usava `.order(created_at: :desc).limit(100)`, mas em Rails **`.order` não sobrescreve o default_scope — ele acrescenta** → o SQL virava `ORDER BY created_at ASC, created_at DESC` (efetivamente ASC) → `limit(100)` retornava as **100 MAIS ANTIGAS**, cortando as novas. Assim, numa conversa com >100 msgs, a mensagem enviada aparecia (push local) e **sumia no próximo polling (3s)** porque o servidor não a devolvia.
+- **Correção:** trocar `.order(created_at: :desc)` por **`.reorder(created_at: :desc)`** no `latest_ids` (e `.reorder(created_at: :asc)` na query final, defensivo). `.reorder` **substitui** o default_scope. Validado via rails runner na 4480: `latest_ids` passa a incluir `142683` (a mais nova) e a lista final termina nela.
+- **Arquivo:** `chatwoot-fix/internal_chat_controller.rb`
+
+> ⚠️ **LIÇÃO (importante):** quando o model tiver `default_scope` de ordenação, **NUNCA** usar `.order` em query de controller — usar **`.reorder`** (`order()` acrescenta, `reorder()` substitui). É o mesmo tipo de pegadinha do `.reverse` (que era no-op).
+
 ### v1.2 – Notificações Inteligentes (Recomendada)
 - **Título da notificação**: Nome do contato (ex: "João Silva")
 - **Corpo da notificação**: Prévia real da última mensagem recebida
@@ -135,11 +149,11 @@ COPY public/vite/ /app/public/vite/
 #
 # 2. Build da imagem
 cd chatwoot-fix
-docker build -t josuemadureira/chatwoot-custom:v4.14.7 .
+docker build -t josuemadureira/chatwoot-custom:v4.14.8 .
 
 # 3. Push para o Docker Hub
 docker login -u josuemadureira
-docker push josuemadureira/chatwoot-custom:v4.14.7
+docker push josuemadureira/chatwoot-custom:v4.14.8
 ```
 
 ---
@@ -170,7 +184,7 @@ NODE_ENV=production pnpm exec vite build
 O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.14.x`.
 
 1. Faça **backup do compose** antes de editar.
-2. No compose, troque a versão (`v4.14.6` → `v4.14.7`) em `chatwoot_app` e `chatwoot_sidekiq`.
+2. No compose, troque a versão (`v4.14.7` → `v4.14.8`) em `chatwoot_app` e `chatwoot_sidekiq`.
 3. Suba apenas os serviços alterados (Postgres/Redis ficam intocados):
 
 ```bash
@@ -185,8 +199,8 @@ docker compose -f <caminho-compose> -p chatwoot up -d chatwoot_app chatwoot_side
 
 | Pasta/Arquivo | Conteúdo |
 |---|---|
-| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.14.7 |
-| `chatwoot-fix/internal_chat_controller.rb` | Controller corrigido (bugs 1 e 2 + fix de ordem `latest_ids`) |
+| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.14.8 |
+| `chatwoot-fix/internal_chat_controller.rb` | Controller corrigido (bugs 1 e 2 + `latest_ids` com `.reorder` — fix do default_scope) |
 | `chatwoot-fix/InternalChatLayout.vue` | Componente corrigido (scroll + merge + caixa nova + `sortMsgs` + menu de contexto) — referência |
 | `README.md` | Este documento |
 
