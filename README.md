@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.15.0` | **Atual + EM PRODUÇÃO** (deploy 2026-08-03) — v4.14.9 + melhoria da edição (foco/Enter/Esc/botões, sem conflito com duplo clique e corretor) + **duplo clique responde no chat do cliente** |
+| `josuemadureira/chatwoot-custom:v4.16.0` | **Atual + EM PRODUÇÃO** (deploy 2026-08-05) — v4.15.0 + **links clicáveis no Chat Interno** (markdown-it + linkify igual ao chat do cliente, `target=_blank`) |
+| `josuemadureira/chatwoot-custom:v4.15.0` | v4.14.9 + melhoria da edição (foco/Enter/Esc/botões, sem conflito com duplo clique e corretor) + **duplo clique responde no chat do cliente** |
 | `josuemadureira/chatwoot-custom:v4.14.9` | v4.14.8 + feature **Responder** no Chat Interno (botão direito + duplo clique, citação na bolha) + fix do bug que zerava a lista (serialize usava `@conversation` nil no `index`) |
 | `josuemadureira/chatwoot-custom:v4.14.8` | v4.14.7 + ROOT CAUSE do "msg some em conversa de 2 pessoas" (default_scope do Message anulava o `.order` → fix `.reorder`) |
 | `josuemadureira/chatwoot-custom:v4.14.7` | v4.14.6 + menu de contexto (botão direito) Editar/Excluir igual ao chat com cliente |
@@ -23,7 +24,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.15.0
+docker pull josuemadureira/chatwoot-custom:v4.16.0
 ```
 
 ---
@@ -34,7 +35,8 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [v4.15.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.15.0) — **Latest** | Edição de mensagens melhorada + duplo clique responde no chat do cliente |
+| [v4.16.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.16.0) — **Latest** | Links clicáveis no Chat Interno (markdown-it + linkify) |
+| [v4.15.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.15.0) | Edição de mensagens melhorada + duplo clique responde no chat do cliente |
 | [v4.14.9](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.14.9) | Feature **Responder** no Chat Interno (botão direito + duplo clique) |
 | [v4.14.8](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.14.8) | ROOT CAUSE do bug "msg some" (default_scope do Message) |
 | [v4.14.7](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.14.7) | Menu de contexto Editar/Excluir no Chat Interno |
@@ -45,6 +47,15 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 ---
 
 ## ✨ Funcionalidades Implementadas
+
+### v4.16.0 – Links clicáveis no Chat Interno (2026-08-05)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.15.0`. Só o frontend mudou (`InternalChatLayout.vue` + assets Vite recompilados).
+
+- 🔗 **Links clicáveis nas mensagens do Chat Interno** — antes, URLs eram texto puro (sem link). Agora o conteúdo passa pelo `MessageFormatter` (markdown-it + linkify) — **o mesmo mecanismo do chat com cliente** — e os links viram âncoras clicáveis com `target="_blank"`, `rel="noreferrer noopener nofollow"` e classe `.link`.
+- **Renderização:** `<div class="prose prose-bubble break-words" v-dompurify-html="formatMessage(msg.content)" />` (mesmas classes e sanitização do `FormattedContent.vue` do cliente — `v-dompurify-html` é diretiva global registrada no Chatwoot).
+- **Helper:** `formatMessage(content)` → `new MessageFormatter(content).formattedMessage` (vazio-safe).
+- **Arquivo:** `chatwoot-fix/InternalChatLayout.vue`
 
 ### v4.14.3 – Correção dos bugs do Chat Interno (2026-08-02)
 
@@ -189,11 +200,11 @@ COPY public/vite/ /app/public/vite/
 #
 # 2. Build da imagem
 cd chatwoot-fix
-docker build -t josuemadureira/chatwoot-custom:v4.15.0 .
+docker build -t josuemadureira/chatwoot-custom:v4.16.0 .
 
 # 3. Push para o Docker Hub
 docker login -u josuemadureira
-docker push josuemadureira/chatwoot-custom:v4.15.0
+docker push josuemadureira/chatwoot-custom:v4.16.0
 ```
 
 ---
@@ -221,10 +232,10 @@ NODE_ENV=production pnpm exec vite build
 
 ## 🚀 Deploy
 
-O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.14.x`.
+O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.16.0`.
 
 1. Faça **backup do compose** antes de editar.
-2. No compose, troque a versão (`v4.14.9` → `v4.15.0`) em `chatwoot_app` e `chatwoot_sidekiq`.
+2. No compose, troque a versão (`v4.15.0` → `v4.16.0`) em `chatwoot_app` e `chatwoot_sidekiq`.
 3. Suba apenas os serviços alterados (Postgres/Redis ficam intocados):
 
 ```bash
@@ -239,9 +250,9 @@ docker compose -f <caminho-compose> -p chatwoot up -d chatwoot_app chatwoot_side
 
 | Pasta/Arquivo | Conteúdo |
 |---|---|
-| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.15.0 |
+| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.16.0 |
 | `chatwoot-fix/internal_chat_controller.rb` | Controller corrigido (bugs 1 e 2 + `latest_ids` com `.reorder` + reply `in_reply_to`/`replied_to`) |
-| `chatwoot-fix/InternalChatLayout.vue` | Componente corrigido (scroll + merge + caixa nova + menu de contexto + **Responder** + edição melhorada) — referência |
+| `chatwoot-fix/InternalChatLayout.vue` | Componente corrigido (scroll + merge + caixa nova + menu de contexto + **Responder** + edição melhorada + **links clicáveis** com markdown-it/linkify) — referência |
 | `chatwoot-fix/message/Message.vue` | Componente do chat do cliente com **duplo clique para responder** — referência |
 | `README.md` | Este documento |
 

@@ -8,6 +8,7 @@ import Icon from 'next/icon/Icon.vue';
 import NextButton from 'next/button/Button.vue';
 import ContextMenu from 'dashboard/components/ui/ContextMenu.vue';
 import MenuItem from 'dashboard/components/widgets/conversation/contextMenu/menuItem.vue';
+import MessageFormatter from 'shared/helpers/MessageFormatter.js';
 
 const accountId = useMapGetter('getCurrentAccountId');
 const currentUser = useMapGetter('getCurrentUser');
@@ -84,6 +85,13 @@ const autoGrow = () => {
 // Ordena as mensagens em ordem de exibição (antiga → nova), independente da
 // ordem que o servidor devolver.
 const sortMsgs = arr => arr.slice().sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
+
+// Formata o conteúdo da mensagem com markdown-it + linkify (igual ao chat com
+// cliente): URLs viram links clicáveis (target _blank, rel noopener) via plugin `mila`.
+const formatMessage = content => {
+  if (!content) return '';
+  return new MessageFormatter(content).formattedMessage;
+};
 
 // Cola imagem com Ctrl+V (como no chat com cliente): lê arquivos do clipboard e
 // adiciona como anexo pendente (preview acima do input).
@@ -399,7 +407,8 @@ const listName = conv => (conv.participants || []).filter(p => p.id !== currentU
               <div v-else>
                 <span v-if="msg.deleted" class="italic opacity-60">Mensagem apagada</span>
                 <div v-else>
-                  <span>{{ msg.content }}</span>
+                  <!-- markdown-it + linkify: links clicáveis (igual ao chat com cliente) -->
+                  <div class="prose prose-bubble break-words" v-dompurify-html="formatMessage(msg.content)" />
                   <div v-if="msg.attachments?.length" class="mt-1 flex flex-wrap gap-1">
                     <template v-for="att in msg.attachments" :key="att.id">
                       <a v-if="isImage(att.file_name)" :href="att.file_url" target="_blank" class="block">
