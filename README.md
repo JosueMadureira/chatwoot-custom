@@ -10,7 +10,10 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.16.0` | **Atual + EM PRODUÇÃO** (deploy 2026-08-05) — v4.15.0 + **links clicáveis no Chat Interno** (markdown-it + linkify igual ao chat do cliente, `target=_blank`) |
+| `josuemadureira/chatwoot-custom:v4.17.2` | **Atual + EM PRODUÇÃO** (deploy 2026-08-07) — v4.17.1 + **launcher do Copiloto sobe no Chat Interno** para não tampar o botão "Enviar (↵)" |
+| `josuemadureira/chatwoot-custom:v4.17.1` | v4.17.0 + **"Selecionar" no menu de botão direito** (junto de Responder/Encaminhar) + **fix do picker de emoji** (abre junto ao botão, acima e à esquerda — não corta mais) |
+| `josuemadureira/chatwoot-custom:v4.17.0` | v4.16.0 + **Encaminhar mensagens** (única ou várias, texto+imagem juntos, tag "↪ Encaminhada de X") + **botão de emoji** no composer |
+| `josuemadureira/chatwoot-custom:v4.16.0` | v4.15.0 + **links clicáveis no Chat Interno** (markdown-it + linkify igual ao chat do cliente, `target=_blank`) |
 | `josuemadureira/chatwoot-custom:v4.15.0` | v4.14.9 + melhoria da edição (foco/Enter/Esc/botões, sem conflito com duplo clique e corretor) + **duplo clique responde no chat do cliente** |
 | `josuemadureira/chatwoot-custom:v4.14.9` | v4.14.8 + feature **Responder** no Chat Interno (botão direito + duplo clique, citação na bolha) + fix do bug que zerava a lista (serialize usava `@conversation` nil no `index`) |
 | `josuemadureira/chatwoot-custom:v4.14.8` | v4.14.7 + ROOT CAUSE do "msg some em conversa de 2 pessoas" (default_scope do Message anulava o `.order` → fix `.reorder`) |
@@ -24,7 +27,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.16.0
+docker pull josuemadureira/chatwoot-custom:v4.17.2
 ```
 
 ---
@@ -35,7 +38,10 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [v4.16.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.16.0) — **Latest** | Links clicáveis no Chat Interno (markdown-it + linkify) |
+| [v4.17.2](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.2) — **Latest** | Copiloto não tampa mais o botão de enviar no Chat Interno |
+| [v4.17.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.1) | "Selecionar" no botão direito + fix do picker de emoji |
+| [v4.17.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.0) | Encaminhar mensagens (estilo WhatsApp) + emoji no composer |
+| [v4.16.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.16.0) | Links clicáveis no Chat Interno (markdown-it + linkify) |
 | [v4.15.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.15.0) | Edição de mensagens melhorada + duplo clique responde no chat do cliente |
 | [v4.14.9](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.14.9) | Feature **Responder** no Chat Interno (botão direito + duplo clique) |
 | [v4.14.8](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.14.8) | ROOT CAUSE do bug "msg some" (default_scope do Message) |
@@ -47,6 +53,33 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 ---
 
 ## ✨ Funcionalidades Implementadas
+
+### v4.17.0 – Encaminhar mensagens + Emoji no Chat Interno (2026-08-07)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.16.0`. Backend + frontend (`internal_chat_controller.rb` + `config/routes.rb` + `InternalChatLayout.vue`).
+
+- 📤 **Encaminhar mensagens** (estilo WhatsApp):
+  - **Botão direito** → menu com **Encaminhar** (única mensagem), ou **modo de seleção** para encaminhar várias de uma vez para outra conversa interna.
+  - **Texto + imagem vão juntos** na mesma bolha, igual na fonte (cada mensagem vira UMA nova no destino).
+  - Tag **"↪ Encaminhada de \<nome\>"** na bolha encaminhada.
+  - **Backend:** nova action `forward` (rota `post :forward`, adicionada em `config/routes.rb` — a base v4.14.2 não tem essa rota); valida participante no destino; copia `content` + attachments **reusando o blob do ActiveStorage** (sem re-upload); `broadcast_message` refatorado para aceitar a conversa destino (notificação no destino); `serialize_message` expõe `forwarded`/`forwarded_from`.
+- 😊 **Botão de emoji** no composer do Chat Interno (componente `EmojiInput` compartilhado, picker em popover).
+- **Arquivos:** `chatwoot-fix/internal_chat_controller.rb`, `chatwoot-fix/config/routes.rb`, `chatwoot-fix/InternalChatLayout.vue`
+
+### v4.17.1 – Ajustes: Selecionar no botão direito + fix do emoji (2026-08-07)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.17.0`. Só o frontend mudou (`InternalChatLayout.vue`).
+
+- 🎯 **"Selecionar" saiu do header e foi para o menu de botão direito**, junto de Responder/Encaminhar (ícone `checkmark`) — igual as outras opções. Ao clicar, ativa o modo de seleção já marcando a mensagem.
+- 🔧 **Fix do picker de emoji:** abria longe do botão e cortado no canto da tela. Agora ancorado ao botão (wrapper `relative` + CSS scoped `.internal-chat-emoji`) e abre **acima e à esquerda**, sem cortar — igual ao ReplyBox do cliente.
+- **Arquivo:** `chatwoot-fix/InternalChatLayout.vue`
+
+### v4.17.2 – Copiloto não tampa o botão de enviar (2026-08-07)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.17.1`. Só o frontend mudou (`CopilotLauncher.vue` + assets Vite recompilados).
+
+- 🤖 **Launcher do Copiloto sobe no Chat Interno** (`bottom-24`) para **não tampar o botão "Enviar (↵)"** do composer no rodapé. Nas outras telas continua `bottom-4`.
+- **Arquivo:** `chatwoot-fix/copilot/CopilotLauncher.vue`
 
 ### v4.16.0 – Links clicáveis no Chat Interno (2026-08-05)
 
@@ -184,10 +217,14 @@ A imagem é construída **em cima da base v4.14.2**, apenas copiando os arquivos
 ```dockerfile
 # chatwoot-fix/Dockerfile
 FROM josuemadureira/chatwoot-custom:v4.14.2
-# Correções dos bugs 1 e 2 (backend)
+# Backend (bugs 1 e 2 + forward)
 COPY internal_chat_controller.rb /app/app/controllers/api/v1/accounts/internal_chat_controller.rb
-# Correção do bug 3 (frontend) — assets Vite recompilados
+# Rota do forward (Encaminhar) — a base v4.14.2 não tem essa rota
+COPY config/routes.rb /app/config/routes.rb
+# Frontend — assets Vite recompilados
 COPY public/vite/ /app/public/vite/
+# Launcher do Copiloto (v4.17.2) — sobe no Chat Interno
+COPY copilot/CopilotLauncher.vue /app/app/javascript/dashboard/components-next/copilot/CopilotLauncher.vue
 ```
 
 ### Passo a passo
@@ -200,11 +237,11 @@ COPY public/vite/ /app/public/vite/
 #
 # 2. Build da imagem
 cd chatwoot-fix
-docker build -t josuemadureira/chatwoot-custom:v4.16.0 .
+docker build -t josuemadureira/chatwoot-custom:v4.17.2 .
 
 # 3. Push para o Docker Hub
 docker login -u josuemadureira
-docker push josuemadureira/chatwoot-custom:v4.16.0
+docker push josuemadureira/chatwoot-custom:v4.17.2
 ```
 
 ---
@@ -232,10 +269,10 @@ NODE_ENV=production pnpm exec vite build
 
 ## 🚀 Deploy
 
-O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.16.0`.
+O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.17.2`.
 
 1. Faça **backup do compose** antes de editar.
-2. No compose, troque a versão (`v4.15.0` → `v4.16.0`) em `chatwoot_app` e `chatwoot_sidekiq`.
+2. No compose, troque a versão (`v4.17.1` → `v4.17.2`) em `chatwoot_app` e `chatwoot_sidekiq`.
 3. Suba apenas os serviços alterados (Postgres/Redis ficam intocados):
 
 ```bash
@@ -250,10 +287,12 @@ docker compose -f <caminho-compose> -p chatwoot up -d chatwoot_app chatwoot_side
 
 | Pasta/Arquivo | Conteúdo |
 |---|---|
-| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.16.0 |
-| `chatwoot-fix/internal_chat_controller.rb` | Controller corrigido (bugs 1 e 2 + `latest_ids` com `.reorder` + reply `in_reply_to`/`replied_to`) |
-| `chatwoot-fix/InternalChatLayout.vue` | Componente corrigido (scroll + merge + caixa nova + menu de contexto + **Responder** + edição melhorada + **links clicáveis** com markdown-it/linkify) — referência |
+| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.17.2 |
+| `chatwoot-fix/internal_chat_controller.rb` | Controller corrigido (bugs 1 e 2 + `latest_ids` com `.reorder` + reply `in_reply_to`/`replied_to` + **forward**) |
+| `chatwoot-fix/config/routes.rb` | Rotas (inclui `post :forward` — a base v4.14.2 não tem) |
+| `chatwoot-fix/InternalChatLayout.vue` | Componente corrigido (scroll + merge + caixa nova + menu de contexto + **Responder** + edição melhorada + **links clicáveis** + **forward** + **emoji** + **Selecionar no menu**) — referência |
 | `chatwoot-fix/message/Message.vue` | Componente do chat do cliente com **duplo clique para responder** — referência |
+| `chatwoot-fix/copilot/CopilotLauncher.vue` | Launcher do Copiloto — **sobe no Chat Interno** para não tampar o botão de enviar (v4.17.2) |
 | `README.md` | Este documento |
 
 ---
