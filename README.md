@@ -10,7 +10,10 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.17.2` | **Atual + EM PRODUÇÃO** (deploy 2026-08-07) — v4.17.1 + **launcher do Copiloto sobe no Chat Interno** para não tampar o botão "Enviar (↵)" |
+| `josuemadureira/chatwoot-custom:v4.17.5` | **Atual + EM PRODUÇÃO** (deploy 2026-08-07) — v4.17.4 + **fix**: a pill de data de um dia anterior não fica mais presa no topo junto com a do dia atual (cada pill agora fica dentro do bloco do seu dia — o próximo dia "empurra" a anterior) |
+| `josuemadureira/chatwoot-custom:v4.17.4` | v4.17.3 + **pill de data gruda no topo** (sticky) ao rolar as mensagens do dia, igual WhatsApp |
+| `josuemadureira/chatwoot-custom:v4.17.3` | v4.17.2 + **separador de data** nas mensagens do Chat Interno (pill **"Hoje" / "Ontem" / dd/mm/aaaa**, igual WhatsApp do celular) |
+| `josuemadureira/chatwoot-custom:v4.17.2` | v4.17.1 + **launcher do Copiloto sobe no Chat Interno** para não tampar o botão "Enviar (↵)" |
 | `josuemadureira/chatwoot-custom:v4.17.1` | v4.17.0 + **"Selecionar" no menu de botão direito** (junto de Responder/Encaminhar) + **fix do picker de emoji** (abre junto ao botão, acima e à esquerda — não corta mais) |
 | `josuemadureira/chatwoot-custom:v4.17.0` | v4.16.0 + **Encaminhar mensagens** (única ou várias, texto+imagem juntos, tag "↪ Encaminhada de X") + **botão de emoji** no composer |
 | `josuemadureira/chatwoot-custom:v4.16.0` | v4.15.0 + **links clicáveis no Chat Interno** (markdown-it + linkify igual ao chat do cliente, `target=_blank`) |
@@ -27,7 +30,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.17.2
+docker pull josuemadureira/chatwoot-custom:v4.17.5
 ```
 
 ---
@@ -38,7 +41,10 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [v4.17.2](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.2) — **Latest** | Copiloto não tampa mais o botão de enviar no Chat Interno |
+| [v4.17.5](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.5) — **Latest** | Fix da pill de data presa (03/08 junto com Hoje) — pill agora fica no bloco do seu dia |
+| [v4.17.4](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.4) | Pill de data **sticky** (gruda no topo ao rolar o dia, igual WhatsApp) |
+| [v4.17.3](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.3) | Separador de data no Chat Interno ("Hoje" / "Ontem" / dd/mm/aaaa) |
+| [v4.17.2](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.2) | Copiloto não tampa mais o botão de enviar no Chat Interno |
 | [v4.17.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.1) | "Selecionar" no botão direito + fix do picker de emoji |
 | [v4.17.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.0) | Encaminhar mensagens (estilo WhatsApp) + emoji no composer |
 | [v4.16.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.16.0) | Links clicáveis no Chat Interno (markdown-it + linkify) |
@@ -53,6 +59,28 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 ---
 
 ## ✨ Funcionalidades Implementadas
+
+### v4.17.5 – Fix da pill de data presa no topo (2026-08-07)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.17.4`. Só o frontend mudou (`InternalChatLayout.vue` + assets Vite recompilados).
+
+- 🐛 **Fix:** na v4.17.4, a pill de um dia anterior (ex: "03/08/2026") **ficava presa no topo junto com a pill do dia atual** ("Hoje") ao rolar a conversa. **Causa:** o `position: sticky` da pill tinha como "containing block" o container inteiro da lista → uma vez presa, não soltava mais, e a pill do próximo dia chegava e **sobrepunha** a anterior.
+- 🔧 **Correção:** as mensagens agora são agrupadas por dia (`dayGroups` — chave + label + itens) e cada dia vira um **bloco** (`position: relative`). A pill `sticky` fica **presa só dentro do bloco do seu dia** — quando o próximo dia entra, a pill anterior é **empurrada para fora**, sem sobrepor (igual WhatsApp).
+- **Arquivo:** `chatwoot-fix/InternalChatLayout.vue`
+
+### v4.17.3 – Separador de data no Chat Interno (2026-08-07)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.17.2`. Só o frontend mudou (`InternalChatLayout.vue` + assets Vite recompilados).
+
+- 📅 **Separador de data** nas mensagens do Chat Interno, **igual ao WhatsApp do celular**: uma pill centralizada mostra **"Hoje"**, **"Ontem"** ou a data **dd/mm/aaaa**, exibida quando muda o dia entre mensagens e também no topo da conversa.
+- **Arquivo:** `chatwoot-fix/InternalChatLayout.vue`
+
+### v4.17.4 – Pill de data fixa no topo (sticky) (2026-08-07)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.17.3`. Só o frontend mudou (`InternalChatLayout.vue` + assets Vite recompilados).
+
+- 📌 **A pill de data gruda no topo da tela** enquanto você rola as mensagens do dia (igual WhatsApp) — quando as mensagens do dia **ultrapassam a altura da tela**, o separador fica fixo no topo até o próximo dia empurrar a anterior. Implementado com `position: sticky` (CSS puro, sem JS de scroll).
+- **Arquivo:** `chatwoot-fix/InternalChatLayout.vue`
 
 ### v4.17.0 – Encaminhar mensagens + Emoji no Chat Interno (2026-08-07)
 
@@ -237,11 +265,11 @@ COPY copilot/CopilotLauncher.vue /app/app/javascript/dashboard/components-next/c
 #
 # 2. Build da imagem
 cd chatwoot-fix
-docker build -t josuemadureira/chatwoot-custom:v4.17.2 .
+docker build -t josuemadureira/chatwoot-custom:v4.17.5 .
 
 # 3. Push para o Docker Hub
 docker login -u josuemadureira
-docker push josuemadureira/chatwoot-custom:v4.17.2
+docker push josuemadureira/chatwoot-custom:v4.17.5
 ```
 
 ---
@@ -269,10 +297,10 @@ NODE_ENV=production pnpm exec vite build
 
 ## 🚀 Deploy
 
-O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.17.2`.
+O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.17.5`.
 
 1. Faça **backup do compose** antes de editar.
-2. No compose, troque a versão (`v4.17.1` → `v4.17.2`) em `chatwoot_app` e `chatwoot_sidekiq`.
+2. No compose, troque a versão (`v4.17.4` → `v4.17.5`) em `chatwoot_app` e `chatwoot_sidekiq`.
 3. Suba apenas os serviços alterados (Postgres/Redis ficam intocados):
 
 ```bash
@@ -290,7 +318,7 @@ docker compose -f <caminho-compose> -p chatwoot up -d chatwoot_app chatwoot_side
 | `chatwoot-fix/Dockerfile` | Overlay da imagem v4.17.2 |
 | `chatwoot-fix/internal_chat_controller.rb` | Controller corrigido (bugs 1 e 2 + `latest_ids` com `.reorder` + reply `in_reply_to`/`replied_to` + **forward**) |
 | `chatwoot-fix/config/routes.rb` | Rotas (inclui `post :forward` — a base v4.14.2 não tem) |
-| `chatwoot-fix/InternalChatLayout.vue` | Componente corrigido (scroll + merge + caixa nova + menu de contexto + **Responder** + edição melhorada + **links clicáveis** + **forward** + **emoji** + **Selecionar no menu**) — referência |
+| `chatwoot-fix/InternalChatLayout.vue` | Componente corrigido (scroll + merge + caixa nova + menu de contexto + **Responder** + edição melhorada + **links clicáveis** + **forward** + **emoji** + **Selecionar no menu** + **separador de data sticky por dia**) — referência |
 | `chatwoot-fix/message/Message.vue` | Componente do chat do cliente com **duplo clique para responder** — referência |
 | `chatwoot-fix/copilot/CopilotLauncher.vue` | Launcher do Copiloto — **sobe no Chat Interno** para não tampar o botão de enviar (v4.17.2) |
 | `README.md` | Este documento |
@@ -300,3 +328,4 @@ docker compose -f <caminho-compose> -p chatwoot up -d chatwoot_app chatwoot_side
 ## 🧠 Contexto do Chat Interno (referência)
 
 O "Chat Interno" é uma customização do Chatwoot onde agentes conversam entre si (mensagens `message_type: :internal`, marcadas com `conversations.internal = true` e `participant_ids` em `additional_attributes`). O controller principal é `app/controllers/api/v1/accounts/internal_chat_controller.rb`.
+
