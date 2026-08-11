@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.17.6` | **Atual + EM PRODUÇÃO** (deploy 2026-08-11) — v4.17.5 + **fix nome de arquivos recebidos** (remove o sufixo `;filename*=`), **reply/quote resolve mensagens de conversas antigas** (prévia + navegação) e **grupos no Chat Interno** (`+` = conversa direta, botão 👥 cria grupo com nome, membros de grupo podem receber conversa direta) |
+| `josuemadureira/chatwoot-custom:v4.17.7` | **Atual + EM PRODUÇÃO** (deploy 2026-08-11) — v4.17.6 + **fix do botão 👥 invisível** no Chat Interno (o ícone `people-outline` era buscado como `people-outline-outline`, que não existe → crash no render; agora é `people`) |
+| `josuemadureira/chatwoot-custom:v4.17.6` | v4.17.5 + **fix nome de arquivos recebidos** (remove o sufixo `;filename*=`), **reply/quote resolve mensagens de conversas antigas** (prévia + navegação) e **grupos no Chat Interno** (`+` = conversa direta, botão 👥 cria grupo com nome, membros de grupo podem receber conversa direta) |
 | `josuemadureira/chatwoot-custom:v4.17.5` | v4.17.4 + **fix**: a pill de data de um dia anterior não fica mais presa no topo junto com a do dia atual (cada pill agora fica dentro do bloco do seu dia — o próximo dia "empurra" a anterior) |
 | `josuemadureira/chatwoot-custom:v4.17.4` | v4.17.3 + **pill de data gruda no topo** (sticky) ao rolar as mensagens do dia, igual WhatsApp |
 | `josuemadureira/chatwoot-custom:v4.17.3` | v4.17.2 + **separador de data** nas mensagens do Chat Interno (pill **"Hoje" / "Ontem" / dd/mm/aaaa**, igual WhatsApp do celular) |
@@ -31,7 +32,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.17.6
+docker pull josuemadureira/chatwoot-custom:v4.17.7
 ```
 
 ---
@@ -42,7 +43,8 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [v4.17.6](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.6) — **Latest** | Fix do `;filename*=` nos nomes de arquivos recebidos + reply/quote de conversas antigas (prévia + navegação) + grupos no Chat Interno |
+| [v4.17.7](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.7) — **Latest** | Fix do botão 👥 invisível no Chat Interno (ícone `people-outline` → `people`) |
+| [v4.17.6](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.6) | Fix do `;filename*=` nos nomes de arquivos recebidos + reply/quote de conversas antigas (prévia + navegação) + grupos no Chat Interno |
 | [v4.17.5](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.5) | Fix da pill de data presa (03/08 junto com Hoje) — pill agora fica no bloco do seu dia |
 | [v4.17.4](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.4) | Pill de data **sticky** (gruda no topo ao rolar o dia, igual WhatsApp) |
 | [v4.17.3](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.3) | Separador de data no Chat Interno ("Hoje" / "Ontem" / dd/mm/aaaa) |
@@ -61,6 +63,16 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 ---
 
 ## ✨ Funcionalidades Implementadas
+
+### v4.17.7 – Fix do botão 👥 invisível (2026-08-11)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.17.6`. Só o frontend mudou (`InternalChatLayout.vue` + assets Vite recompilados).
+
+- 👥 **Fix:** o botão **Criar grupo** (`people-outline`) ficava **invisível** no Chat Interno — a equipe não via o botão para criar grupo.
+  - **Causa raiz:** o componente de ícone global busca no `dashboard-icons.json` a chave **`{nome}-{tipo}`** (tipo default = `outline`). O botão usava `icon="people-outline"` → a busca virava `people-outline-outline`, que **não existe** no JSON → `path` fica `undefined` → `path.constructor` lança erro de render → o ícone não desenhava nada (botão vazio/invisível). O `+` funcionava porque `icon="add"` → `add-outline` existe.
+  - **Correção:** `icon="people"` (o sufixo `-outline` é acrescentado automaticamente → `people-outline`, que existe).
+  - ⚠️ **LIÇÃO:** as chaves do `dashboard-icons.json` **já incluem o sufixo** (`people-outline`, `add-outline`, ...). Ao usar `<fluent-icon>`, passe o nome **sem** o sufixo (`icon="people"`), nunca `icon="people-outline"`.
+- **Arquivo:** `chatwoot-fix/InternalChatLayout.vue`
 
 ### v4.17.6 – Nomes de arquivos limpos + reply de conversas antigas + grupos (2026-08-11)
 
@@ -299,11 +311,11 @@ COPY copilot/CopilotLauncher.vue /app/app/javascript/dashboard/components-next/c
 #
 # 2. Build da imagem
 cd chatwoot-fix
-docker build -t josuemadureira/chatwoot-custom:v4.17.6 .
+docker build -t josuemadureira/chatwoot-custom:v4.17.7 .
 
 # 3. Push para o Docker Hub
 docker login -u josuemadureira
-docker push josuemadureira/chatwoot-custom:v4.17.6
+docker push josuemadureira/chatwoot-custom:v4.17.7
 ```
 
 ---
@@ -331,10 +343,10 @@ NODE_ENV=production pnpm exec vite build
 
 ## 🚀 Deploy
 
-O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.17.6`.
+O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.17.7`.
 
 1. Faça **backup do compose** antes de editar.
-2. No compose, troque a versão (`v4.17.5` → `v4.17.6`) em `chatwoot_app` e `chatwoot_sidekiq`.
+2. No compose, troque a versão (`v4.17.6` → `v4.17.7`) em `chatwoot_app` e `chatwoot_sidekiq`.
 3. Suba apenas os serviços alterados (Postgres/Redis ficam intocados):
 
 ```bash
@@ -349,12 +361,12 @@ docker compose -f <caminho-compose> -p chatwoot up -d chatwoot_app chatwoot_side
 
 | Pasta/Arquivo | Conteúdo |
 |---|---|
-| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.17.2 |
+| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.17.7 |
 | `chatwoot-fix/internal_chat_controller.rb` | Controller corrigido (bugs 1 e 2 + `latest_ids` com `.reorder` + reply `in_reply_to`/`replied_to` + **forward** + **`create_group`** + `has_open_chat` só p/ conversas diretas) |
 | `chatwoot-fix/config/routes.rb` | Rotas (inclui `post :forward` e `post :create_group` — a base v4.14.2 não tem) |
 | `chatwoot-fix/app/services/whatsapp/incoming_message_base_service.rb` | Sanitização de filename de anexos recebidos (corta o sufixo `;filename*=`) — v4.17.6 |
 | `chatwoot-fix/app/services/messages/in_reply_to_message_builder.rb` | Reply/quote resolve mensagens citadas de conversas ANTIGAS do contato + expõe `in_reply_to_conversation_id` — v4.17.6 |
-| `chatwoot-fix/InternalChatLayout.vue` | Componente corrigido (scroll + merge + caixa nova + menu de contexto + **Responder** + edição melhorada + **links clicáveis** + **forward** + **emoji** + **Selecionar no menu** + **separador de data sticky por dia** + **`+` = conversa direta + botão 👥 Novo Grupo**) — referência |
+| `chatwoot-fix/InternalChatLayout.vue` | Componente corrigido (scroll + merge + caixa nova + menu de contexto + **Responder** + edição melhorada + **links clicáveis** + **forward** + **emoji** + **Selecionar no menu** + **separador de data sticky por dia** + **`+` = conversa direta + botão 👥 Novo Grupo** + **fix ícone 👥** `icon="people"`) — referência |
 | `chatwoot-fix/message/Message.vue` | Componente do chat do cliente com **duplo clique para responder** — referência |
 | `chatwoot-fix/message/MessageList.vue` | Prévia de reply/quote busca da conversa certa (`in_reply_to_conversation_id`) — v4.17.6 |
 | `chatwoot-fix/message/bubbles/Base.vue` | Clique na citação de outra conversa navega até ela (`?messageId=`) — v4.17.6 |
