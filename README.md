@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.17.8` | **Atual + EM PRODUÇÃO** (deploy 2026-08-11) — v4.17.7 + **painel de detalhes de grupo** no Chat Interno (ⓘ: ver participantes, admin renomeia/adiciona/remove, não-admin sai do grupo) + **contador de não lidas por conversa** (pill azul estilo WhatsApp) + botões maiores + grupo exige mínimo 2 pessoas |
+| `josuemadureira/chatwoot-custom:v4.17.9` | **Atual + EM PRODUÇÃO** (deploy 2026-08-11) — v4.17.8 + **emojis maiores nas mensagens** (35% maiores que o texto, via MessageFormatter + `emoji-regex`) e **no picker de emoji** (itens 24px, botões 36px, diálogo maior) no Chat Interno, no dashboard e no widget |
+| `josuemadureira/chatwoot-custom:v4.17.8` | v4.17.7 + **painel de detalhes de grupo** no Chat Interno (ⓘ: ver participantes, admin renomeia/adiciona/remove, não-admin sai do grupo) + **contador de não lidas por conversa** (pill azul estilo WhatsApp) + botões maiores + grupo exige mínimo 2 pessoas |
 | `josuemadureira/chatwoot-custom:v4.17.7` | v4.17.6 + **fix do botão 👥 invisível** no Chat Interno (o ícone `people-outline` era buscado como `people-outline-outline`, que não existe → crash no render; agora é `people`) |
 | `josuemadureira/chatwoot-custom:v4.17.6` | v4.17.5 + **fix nome de arquivos recebidos** (remove o sufixo `;filename*=`), **reply/quote resolve mensagens de conversas antigas** (prévia + navegação) e **grupos no Chat Interno** (`+` = conversa direta, botão 👥 cria grupo com nome, membros de grupo podem receber conversa direta) |
 | `josuemadureira/chatwoot-custom:v4.17.5` | v4.17.4 + **fix**: a pill de data de um dia anterior não fica mais presa no topo junto com a do dia atual (cada pill agora fica dentro do bloco do seu dia — o próximo dia "empurra" a anterior) |
@@ -33,7 +34,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.17.8
+docker pull josuemadureira/chatwoot-custom:v4.17.9
 ```
 
 ---
@@ -44,7 +45,8 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [v4.17.8](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.8) — **Latest** | Painel de detalhes de grupo (admin renomeia/adiciona/remove; não-admin sai) + contador de não lidas por conversa |
+| [v4.17.9](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.9) — **Latest** | Emojis maiores nas mensagens (35%) + picker de emoji maior (itens 24px, botões 36px) em todo o Chatwoot |
+| [v4.17.8](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.8) | Painel de detalhes de grupo (admin renomeia/adiciona/remove; não-admin sai) + contador de não lidas por conversa |
 | [v4.17.7](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.7) | Fix do botão 👥 invisível no Chat Interno (ícone `people-outline` → `people`) |
 | [v4.17.6](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.6) | Fix do `;filename*=` nos nomes de arquivos recebidos + reply/quote de conversas antigas (prévia + navegação) + grupos no Chat Interno |
 | [v4.17.5](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.5) | Fix da pill de data presa (03/08 junto com Hoje) — pill agora fica no bloco do seu dia |
@@ -65,6 +67,17 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 ---
 
 ## ✨ Funcionalidades Implementadas
+
+### v4.17.9 – Emojis maiores nas mensagens + picker (2026-08-11)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.17.8`. Só o frontend mudou (assets Vite recompilados). **EM PRODUÇÃO** (deploy autorizado, 2026-08-11).
+
+- 😀 **Emojis maiores nas mensagens (padrão WhatsApp):** cada emoji agora é renderizado **35% maior** que o texto nas mensagens do **Chat Interno**, das **conversas do dashboard** e do **widget do cliente** (enviadas e recebidas).
+  - O `MessageFormatter` (markdown-it) embrulha cada emoji num `<span class="emoji">` (via `emoji-regex` — sequências ZWJ, tom de pele e bandeiras ficam num span único, sem quebrar).
+  - Code blocks, links e imagens não são afetados; o texto puro é preservado.
+- 🎯 **Picker de emoji maior:** itens da grade 18px → **24px** com botões de 36px (antes 26px), diálogo maior (`w-96` + altura), ícones de categoria no rodapé 14px → **20px**. Vale para widget, ReplyBox e Chat Interno (compartilham o `EmojiInput.vue`).
+- ⌨️ **Sugestões do `:` no editor:** emoji subiu de `text-sm` → `text-lg`.
+- **Arquivos:** `shared/helpers/MessageFormatter.js` (+ `emoji-regex` como dependência), `shared/components/emoji/EmojiInput.vue`, `keyboardEmojiSelector.vue`, `tailwind.config.js` (`.emoji` no `typography.bubble`) e `widget/assets/scss/woot.scss` (`.emoji` no widget).
 
 ### v4.17.8 – Painel de Detalhes de Grupo + Contador de não lidas (2026-08-11)
 
