@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.17.7` | **Atual + EM PRODUÇÃO** (deploy 2026-08-11) — v4.17.6 + **fix do botão 👥 invisível** no Chat Interno (o ícone `people-outline` era buscado como `people-outline-outline`, que não existe → crash no render; agora é `people`) |
+| `josuemadureira/chatwoot-custom:v4.17.8` | **Atual + EM PRODUÇÃO** (deploy 2026-08-11) — v4.17.7 + **painel de detalhes de grupo** no Chat Interno (ⓘ: ver participantes, admin renomeia/adiciona/remove, não-admin sai do grupo) + **contador de não lidas por conversa** (pill azul estilo WhatsApp) + botões maiores + grupo exige mínimo 2 pessoas |
+| `josuemadureira/chatwoot-custom:v4.17.7` | v4.17.6 + **fix do botão 👥 invisível** no Chat Interno (o ícone `people-outline` era buscado como `people-outline-outline`, que não existe → crash no render; agora é `people`) |
 | `josuemadureira/chatwoot-custom:v4.17.6` | v4.17.5 + **fix nome de arquivos recebidos** (remove o sufixo `;filename*=`), **reply/quote resolve mensagens de conversas antigas** (prévia + navegação) e **grupos no Chat Interno** (`+` = conversa direta, botão 👥 cria grupo com nome, membros de grupo podem receber conversa direta) |
 | `josuemadureira/chatwoot-custom:v4.17.5` | v4.17.4 + **fix**: a pill de data de um dia anterior não fica mais presa no topo junto com a do dia atual (cada pill agora fica dentro do bloco do seu dia — o próximo dia "empurra" a anterior) |
 | `josuemadureira/chatwoot-custom:v4.17.4` | v4.17.3 + **pill de data gruda no topo** (sticky) ao rolar as mensagens do dia, igual WhatsApp |
@@ -32,7 +33,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.17.7
+docker pull josuemadureira/chatwoot-custom:v4.17.8
 ```
 
 ---
@@ -43,7 +44,8 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [v4.17.7](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.7) — **Latest** | Fix do botão 👥 invisível no Chat Interno (ícone `people-outline` → `people`) |
+| [v4.17.8](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.8) — **Latest** | Painel de detalhes de grupo (admin renomeia/adiciona/remove; não-admin sai) + contador de não lidas por conversa |
+| [v4.17.7](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.7) | Fix do botão 👥 invisível no Chat Interno (ícone `people-outline` → `people`) |
 | [v4.17.6](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.6) | Fix do `;filename*=` nos nomes de arquivos recebidos + reply/quote de conversas antigas (prévia + navegação) + grupos no Chat Interno |
 | [v4.17.5](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.5) | Fix da pill de data presa (03/08 junto com Hoje) — pill agora fica no bloco do seu dia |
 | [v4.17.4](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.4) | Pill de data **sticky** (gruda no topo ao rolar o dia, igual WhatsApp) |
@@ -63,6 +65,19 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 ---
 
 ## ✨ Funcionalidades Implementadas
+
+### v4.17.8 – Painel de Detalhes de Grupo + Contador de não lidas (2026-08-11)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.17.7`. Backend + frontend. **EM PRODUÇÃO** (deploy autorizado, 2026-08-11).
+
+- 👥 **Painel de Detalhes de Grupo:** botão **ⓘ** no header do Chat Interno (só em grupos) abre uma coluna à direita (estilo painel do cliente) com avatares, nome, nº de participantes, **Admin** (criador) e data de criação.
+  - **Criador (admin):** pode **renomear** (input inline), **adicionar** membros (modal com checkboxes) e **remover** membros (confirmação inline "Sim?"). Não pode remover a si mesmo.
+  - **Não-criadores:** veem a lista sem botões de gestão e têm **"Sair do grupo"** no rodapé (confirmação inline "Sair mesmo?").
+  - **Backend:** `update_group` (só o criador; valida add/remove/rename, bloqueia remover o criador), `leave_group` (só não-criador), `creator_id` gravado na criação e exposto na serialização (`creator`). Data-fix: "Clube das Winx" (conv 4722) → `creator_id = 9` (Brenno).
+- 🔔 **Contador de não lidas por conversa (estilo WhatsApp):** pill azul com o nº de mensagens internas não lidas na lista, zerado ao abrir a conversa (mecanismo `read_by` por mensagem); mostra "99+" acima de 99.
+- 🎛 **Botões maiores e mais usáveis:** ⓘ Detalhes, 👥 Criar grupo, ➕ Nova conversa, ➕ Adicionar membro e 🗑 Remover do grupo agora são botões `size-9` com ícone 20 — clicáveis de verdade, sem "sujeirinhas".
+- 🔒 **Trava de grupo:** o botão **"Criar grupo"** fica **desabilitado** (esmaecido) até selecionar **mínimo 2 pessoas**; a validação também exige ≥2.
+- **Arquivos:** `internal_chat_controller.rb` + `config/routes.rb` + `InternalChatLayout.vue` (+ assets Vite recompilados).
 
 ### v4.17.7 – Fix do botão 👥 invisível (2026-08-11)
 
