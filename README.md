@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.18.1` | **Atual + EM PRODUÇÃO** (deploy 2026-08-12) — v4.18.0 + **fix da confirmação de leitura (check ✓✓ azul) e do contador de não lidas** (mensagens que chegam com a conversa aberta agora são marcadas como lidas no polling — antes só ao abrir) + **botão "+" no fim dos emojis rápidos de reação** (abre o picker completo de emojis) + **arquivos enviados maiores** (imagens 200×150 → 280×210, documento com chip maior) |
+| `josuemadureira/chatwoot-custom:v4.18.2` | **Atual + EM PRODUÇÃO** (deploy 2026-08-12) — v4.18.1 + **fix definitivo do check azul ao responder** (`create_message` agora marca a leitura — se um colega responde sua mensagem mesmo com a conversa já aberta, o check ✓✓ azul acende na hora; antes ficava cinza para sempre nesse cenário) |
+| `josuemadureira/chatwoot-custom:v4.18.1` | v4.18.0 + **fix da confirmação de leitura (check ✓✓ azul) e do contador de não lidas** (mensagens que chegam com a conversa aberta agora são marcadas como lidas no polling — antes só ao abrir) + **botão "+" no fim dos emojis rápidos de reação** (abre o picker completo de emojis) + **arquivos enviados maiores** (imagens 200×150 → 280×210, documento com chip maior) |
 | `josuemadureira/chatwoot-custom:v4.18.0` | v4.17.9 + **reações de mensagens com emoji** no Chat Interno (hover → picker rápido, chips com contagem, toggle estilo WhatsApp) + **anexar agora fica no composer** (igual Ctrl+V: preview, escreve texto e Envia) + **duplo clique para responder removido** (só botão direito) |
 | `josuemadureira/chatwoot-custom:v4.17.9` | v4.17.8 + **emojis maiores nas mensagens** (35% maiores que o texto, via MessageFormatter + `emoji-regex`) e **no picker de emoji** (itens 24px, botões 36px, diálogo maior) no Chat Interno, no dashboard e no widget |
 | `josuemadureira/chatwoot-custom:v4.17.8` | v4.17.7 + **painel de detalhes de grupo** no Chat Interno (ⓘ: ver participantes, admin renomeia/adiciona/remove, não-admin sai do grupo) + **contador de não lidas por conversa** (pill azul estilo WhatsApp) + botões maiores + grupo exige mínimo 2 pessoas |
@@ -36,7 +37,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.18.1
+docker pull josuemadureira/chatwoot-custom:v4.18.2
 ```
 
 ---
@@ -47,7 +48,8 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [v4.18.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.1) — **Latest** | Fix da confirmação de leitura (✓✓ azul) e do contador de não lidas (leitura agora marca no polling, sem reabrir) + botão "+" nos emojis de reação (picker completo) + arquivos enviados maiores |
+| [v4.18.2](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.2) — **Latest** | Fix definitivo do check azul ao responder: `create_message` agora marca a leitura — respondendo a conversa (mesmo sem reabrir) o check ✓✓ do remetente acende na hora |
+| [v4.18.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.1) | Fix da confirmação de leitura (✓✓ azul) e do contador de não lidas (leitura agora marca no polling, sem reabrir) + botão "+" nos emojis de reação (picker completo) + arquivos enviados maiores |
 | [v4.18.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.0) | Reações com emoji no Chat Interno (estilo WhatsApp) + anexar fica no composer (igual Ctrl+V) + remoção do duplo clique para responder |
 | [v4.17.9](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.9) | Emojis maiores nas mensagens (35%) + picker de emoji maior (itens 24px, botões 36px) em todo o Chatwoot |
 | [v4.17.8](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.8) | Painel de detalhes de grupo (admin renomeia/adiciona/remove; não-admin sai) + contador de não lidas por conversa |
@@ -71,6 +73,16 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 ---
 
 ## ✨ Funcionalidades Implementadas
+
+### v4.18.2 – Fix definitivo do check azul ao responder (2026-08-12)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.18.1`. Backend-only (sem mudança de frontend). **EM PRODUÇÃO** (deploy autorizado, 2026-08-12).
+
+- 🟦 **Sintoma:** os checks azuis tinham voltado a funcionar na v4.18.1, mas pararam de novo — havia conversas **já respondidas** com o check ainda cinza.
+- **Root cause:** o `read_conversation` (que preenche `read_by` e acende o check) só rodava ao **abrir** a conversa ou no polling quando ela estava fechada. Se a conversa **já estava aberta** e o colega respondia sem reabrir, a resposta era criada via `create_message` — que **não marcava leitura** — então o check do remetente ficava cinza para sempre, mesmo com a conversa respondida.
+- 🔧 **Fix:** `create_message` agora chama o helper `mark_internal_conversation_read` **depois** de criar a mensagem — quem respondeu, leu (semântica WhatsApp: responder = ler). O `read_conversation` foi refatorado para usar o **mesmo helper** (fonte única de verdade).
+- ✅ **Resultado:** quando um colega responde sua mensagem, o check azul acende **na hora** — independente de reabrir ou não a conversa, em qualquer versão de cliente/tab.
+- **Arquivo:** `chatwoot-fix/internal_chat_controller.rb` (`create_message` + `read_conversation` → helper `mark_internal_conversation_read`)
 
 ### v4.18.1 – Fix leitura (check azul) + contador + "+" na reação + arquivos maiores (2026-08-12)
 
