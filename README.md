@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.18.0` | **Atual + EM PRODUÇÃO** (deploy 2026-08-12) — v4.17.9 + **reações de mensagens com emoji** no Chat Interno (hover → picker rápido, chips com contagem, toggle estilo WhatsApp) + **anexar agora fica no composer** (igual Ctrl+V: preview, escreve texto e Envia) + **duplo clique para responder removido** (só botão direito) |
+| `josuemadureira/chatwoot-custom:v4.18.1` | **Atual + EM PRODUÇÃO** (deploy 2026-08-12) — v4.18.0 + **fix da confirmação de leitura (check ✓✓ azul) e do contador de não lidas** (mensagens que chegam com a conversa aberta agora são marcadas como lidas no polling — antes só ao abrir) + **botão "+" no fim dos emojis rápidos de reação** (abre o picker completo de emojis) + **arquivos enviados maiores** (imagens 200×150 → 280×210, documento com chip maior) |
+| `josuemadureira/chatwoot-custom:v4.18.0` | v4.17.9 + **reações de mensagens com emoji** no Chat Interno (hover → picker rápido, chips com contagem, toggle estilo WhatsApp) + **anexar agora fica no composer** (igual Ctrl+V: preview, escreve texto e Envia) + **duplo clique para responder removido** (só botão direito) |
 | `josuemadureira/chatwoot-custom:v4.17.9` | v4.17.8 + **emojis maiores nas mensagens** (35% maiores que o texto, via MessageFormatter + `emoji-regex`) e **no picker de emoji** (itens 24px, botões 36px, diálogo maior) no Chat Interno, no dashboard e no widget |
 | `josuemadureira/chatwoot-custom:v4.17.8` | v4.17.7 + **painel de detalhes de grupo** no Chat Interno (ⓘ: ver participantes, admin renomeia/adiciona/remove, não-admin sai do grupo) + **contador de não lidas por conversa** (pill azul estilo WhatsApp) + botões maiores + grupo exige mínimo 2 pessoas |
 | `josuemadureira/chatwoot-custom:v4.17.7` | v4.17.6 + **fix do botão 👥 invisível** no Chat Interno (o ícone `people-outline` era buscado como `people-outline-outline`, que não existe → crash no render; agora é `people`) |
@@ -35,7 +36,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.18.0
+docker pull josuemadureira/chatwoot-custom:v4.18.1
 ```
 
 ---
@@ -46,7 +47,8 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [v4.18.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.0) — **Latest** | Reações com emoji no Chat Interno (estilo WhatsApp) + anexar fica no composer (igual Ctrl+V) + remoção do duplo clique para responder |
+| [v4.18.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.1) — **Latest** | Fix da confirmação de leitura (✓✓ azul) e do contador de não lidas (leitura agora marca no polling, sem reabrir) + botão "+" nos emojis de reação (picker completo) + arquivos enviados maiores |
+| [v4.18.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.0) | Reações com emoji no Chat Interno (estilo WhatsApp) + anexar fica no composer (igual Ctrl+V) + remoção do duplo clique para responder |
 | [v4.17.9](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.9) | Emojis maiores nas mensagens (35%) + picker de emoji maior (itens 24px, botões 36px) em todo o Chatwoot |
 | [v4.17.8](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.8) | Painel de detalhes de grupo (admin renomeia/adiciona/remove; não-admin sai) + contador de não lidas por conversa |
 | [v4.17.7](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.7) | Fix do botão 👥 invisível no Chat Interno (ícone `people-outline` → `people`) |
@@ -69,6 +71,15 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 ---
 
 ## ✨ Funcionalidades Implementadas
+
+### v4.18.1 – Fix leitura (check azul) + contador + "+" na reação + arquivos maiores (2026-08-12)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.18.0`. Frontend do Chat Interno. **EM PRODUÇÃO** (deploy autorizado, 2026-08-12).
+
+- 🟦 **Confirmação de leitura (check ✓✓ azul) voltou + contador de não lidas correto:** root cause único — o `read_conversation` (que preenche `read_by` e zera o contador) só rodava ao **abrir** a conversa, nunca no polling de 3s. Mensagens que chegavam com a conversa aberta ficavam "não lidas" até sair/entrar → check do colega ficava cinza e o contador parecia "contar as minhas mensagens". **Fix:** `loadMsgs` chama `read_conversation` no polling se houver mensagens de outros não lidas por mim (com guarda — não posta à toa). Check azul agora aparece assim que o colega lê, e o contador some sem reabrir.
+- ➕ **Botão "+" no fim dos emojis rápidos de reação:** abre o **picker completo de emojis** (busca + categorias — o mesmo `EmojiInput` do composer); emoji clicado reage normalmente (toggle estilo WhatsApp).
+- 📎 **Arquivos enviados maiores:** imagens `200×150px` → `280×210px`; documento com chip maior (padding/ícone/texto) e nome truncado.
+- **Arquivo:** `app/javascript/dashboard/components-next/InternalChat/InternalChatLayout.vue` (read-on-poll + "+" + picker completo + tamanho dos anexos).
 
 ### v4.18.0 – Reações + anexo no composer + remover duplo clique (2026-08-12)
 
