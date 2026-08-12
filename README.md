@@ -10,7 +10,9 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.18.2` | **Atual + EM PRODUÇÃO** (deploy 2026-08-12) — v4.18.1 + **fix definitivo do check azul ao responder** (`create_message` agora marca a leitura — se um colega responde sua mensagem mesmo com a conversa já aberta, o check ✓✓ azul acende na hora; antes ficava cinza para sempre nesse cenário) |
+| `josuemadureira/chatwoot-custom:v4.18.4` | **Atual + EM PRODUÇÃO** (deploy 2026-08-12) — v4.18.3 + **fix crítico do envio falsamente marcado como "não enviado"** (o handler do flash do quote desestruturava payload `undefined` do `SCROLL_TO_MESSAGE` → `TypeError` → mensagem ficava vermelha mesmo sendo entregue; agora o handler tem default `= {}` + guarda — flash do quote mantido e envio normalizado) |
+| `josuemadureira/chatwoot-custom:v4.18.3` | v4.18.2 + **mensagem marcada/citada "pisca em amarelo" ao clicar na prévia do quote** (estilo WhatsApp, rola até a mensagem exata e destaca) — no chat com cliente e no Chat Interno |
+| `josuemadureira/chatwoot-custom:v4.18.2` | v4.18.1 + **fix definitivo do check azul ao responder** (`create_message` agora marca a leitura — se um colega responde sua mensagem mesmo com a conversa já aberta, o check ✓✓ azul acende na hora; antes ficava cinza para sempre nesse cenário) |
 | `josuemadureira/chatwoot-custom:v4.18.1` | v4.18.0 + **fix da confirmação de leitura (check ✓✓ azul) e do contador de não lidas** (mensagens que chegam com a conversa aberta agora são marcadas como lidas no polling — antes só ao abrir) + **botão "+" no fim dos emojis rápidos de reação** (abre o picker completo de emojis) + **arquivos enviados maiores** (imagens 200×150 → 280×210, documento com chip maior) |
 | `josuemadureira/chatwoot-custom:v4.18.0` | v4.17.9 + **reações de mensagens com emoji** no Chat Interno (hover → picker rápido, chips com contagem, toggle estilo WhatsApp) + **anexar agora fica no composer** (igual Ctrl+V: preview, escreve texto e Envia) + **duplo clique para responder removido** (só botão direito) |
 | `josuemadureira/chatwoot-custom:v4.17.9` | v4.17.8 + **emojis maiores nas mensagens** (35% maiores que o texto, via MessageFormatter + `emoji-regex`) e **no picker de emoji** (itens 24px, botões 36px, diálogo maior) no Chat Interno, no dashboard e no widget |
@@ -37,7 +39,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.18.2
+docker pull josuemadureira/chatwoot-custom:v4.18.4
 ```
 
 ---
@@ -48,7 +50,9 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [v4.18.2](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.2) — **Latest** | Fix definitivo do check azul ao responder: `create_message` agora marca a leitura — respondendo a conversa (mesmo sem reabrir) o check ✓✓ do remetente acende na hora |
+| [v4.18.4](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.4) — **Latest** | Fix crítico do envio falsamente marcado como "não enviado" (handler do flash do quote com default `={}` + guarda; envio normalizado, flash do quote mantido) |
+| [v4.18.3](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.3) | Mensagem marcada/citada "pisca em amarelo" ao clicar na prévia do quote (estilo WhatsApp) — chat com cliente e Chat Interno |
+| [v4.18.2](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.2) | Fix definitivo do check azul ao responder: `create_message` agora marca a leitura — respondendo a conversa (mesmo sem reabrir) o check ✓✓ do remetente acende na hora |
 | [v4.18.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.1) | Fix da confirmação de leitura (✓✓ azul) e do contador de não lidas (leitura agora marca no polling, sem reabrir) + botão "+" nos emojis de reação (picker completo) + arquivos enviados maiores |
 | [v4.18.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.0) | Reações com emoji no Chat Interno (estilo WhatsApp) + anexar fica no composer (igual Ctrl+V) + remoção do duplo clique para responder |
 | [v4.17.9](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.9) | Emojis maiores nas mensagens (35%) + picker de emoji maior (itens 24px, botões 36px) em todo o Chatwoot |
@@ -73,6 +77,38 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 ---
 
 ## ✨ Funcionalidades Implementadas
+
+### v4.18.4 – Fix crítico: envio falsamente marcado como "não enviado" (2026-08-12)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.18.3`. Frontend do chat com cliente (`Message.vue`). **EM PRODUÇÃO** (deploy autorizado, 2026-08-12). **ESTE É O ÚLTIMO.**
+
+- 🟥 **Sintoma (introduzido na v4.18.3):** ao enviar qualquer mensagem ao cliente, a bolha ficava **vermelha** com o aviso **"Não foi possível enviar esta mensagem, por favor, tente novamente mais tarde"** — e o erro **sumia ao reiniciar** (Ctrl+Shift+R). O usuário reenviou várias vezes achando que não tinha ido.
+- **A verdade:** as mensagens **ESTAVAM sendo entregues** no servidor (banco mostrava `delivered`/`read`) — era **alarme falso** no frontend. Mas, como parecia falha, o usuário reenviou → **duplicatas** chegaram aos clientes entre ~18:26–18:42.
+- **Root cause:** o handler do destaque de mensagem citada (v4.18.3) fazia `const handleScrollToMessage = ({ messageId }) => {...}` — mas o evento `SCROLL_TO_MESSAGE` é emitido **sem payload** em vários lugares logo após o envio (só para rolar até o fim): `ReplyBox.vue`, `store/modules/conversations`, `InboxView.vue`. Desestruturar payload `undefined` lançava **`TypeError`**, que caía no `catch` do fluxo de envio → mensagem marcada como falha.
+- 🔧 **Fix:** default no argumento + guarda:
+  ```js
+  const handleScrollToMessage = ({ messageId } = {}) => {
+    // payload undefined = scroll-to-bottom pós-envio (não é um quote) — ignora
+    if (!messageId || Number(messageId) !== Number(props.id)) return;
+    flashHighlight();
+    document.getElementById(`message${props.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+  ```
+- ✅ **Resultado:** flash do quote **continua** (com `messageId`), scroll pós-envio é **ignorado** (sem `messageId`) e o envio **não é mais marcado como falha** — confirmado pelo usuário ("Normalizou, graças a Deus").
+- ⚠️ **LIÇÃO:** ao registrar `emitter.on(SCROLL_TO_MESSAGE, handler)`, o handler **DEVE** tratar payload `undefined` (default `= {}` + guarda), pois o evento é disparado **com e sem** payload.
+- **Arquivo:** `app/javascript/dashboard/components-next/message/Message.vue`
+
+### v4.18.3 – Mensagem marcada "pisca" ao clicar na prévia do quote (2026-08-12)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.18.2`. Frontend do Chat Interno + chat do cliente. **EM PRODUÇÃO** (deploy autorizado, 2026-08-12).
+
+- 🟡 **Sintoma:** ao clicar na prévia do quote (mensagem citada/marcada), a conversa rolava mas **não destacava qual mensagem é** — o agente ficava sem saber a qual mensagem o cliente se referia.
+- **Causa:** no chat com cliente, o evento `SCROLL_TO_MESSAGE` (emitido ao clicar na prévia) **não tinha ouvinte** no components-next (só no `MessagesView.vue` antigo, não usado) → o clique não fazia nada; e o destaque por `?messageId` usava `bg-n-alpha-1` por 1s — quase invisível.
+- **Fix:**
+  - **Chat com cliente (`Message.vue`):** cada mensagem agora **ouve** `SCROLL_TO_MESSAGE` — ao clicar na prévia, a mensagem alvo **rola para o centro e pisca em amarelo** por 2s (`message-flash-highlight`, animação CSS). O mesmo flash mais visível vale para o `?messageId` (quote de outra conversa).
+  - **Chat Interno (`InternalChatLayout.vue`):** `scrollToMessage` agora também **destaca** a mensagem citada (`internal-msg-highlight`), mesma animação.
+- **Resultado:** clicar na prévia do quote **mostra exatamente** a mensagem citada — igual ao WhatsApp, no chat com cliente e no Chat Interno.
+- **Arquivos:** `Message.vue` (ouvinte `SCROLL_TO_MESSAGE` + flash + animação CSS), `InternalChatLayout.vue` (`scrollToMessage` destaca + animação CSS)
 
 ### v4.18.2 – Fix definitivo do check azul ao responder (2026-08-12)
 
@@ -373,11 +409,11 @@ COPY copilot/CopilotLauncher.vue /app/app/javascript/dashboard/components-next/c
 #
 # 2. Build da imagem
 cd chatwoot-fix
-docker build -t josuemadureira/chatwoot-custom:v4.17.7 .
+docker build -t josuemadureira/chatwoot-custom:v4.18.4 .
 
 # 3. Push para o Docker Hub
 docker login -u josuemadureira
-docker push josuemadureira/chatwoot-custom:v4.17.7
+docker push josuemadureira/chatwoot-custom:v4.18.4
 ```
 
 ---
@@ -405,10 +441,10 @@ NODE_ENV=production pnpm exec vite build
 
 ## 🚀 Deploy
 
-O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.17.7`.
+O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.18.4`.
 
 1. Faça **backup do compose** antes de editar.
-2. No compose, troque a versão (`v4.17.6` → `v4.17.7`) em `chatwoot_app` e `chatwoot_sidekiq`.
+2. No compose, troque a versão (`v4.18.3` → `v4.18.4`) em `chatwoot_app` e `chatwoot_sidekiq`.
 3. Suba apenas os serviços alterados (Postgres/Redis ficam intocados):
 
 ```bash
@@ -423,13 +459,13 @@ docker compose -f <caminho-compose> -p chatwoot up -d chatwoot_app chatwoot_side
 
 | Pasta/Arquivo | Conteúdo |
 |---|---|
-| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.17.7 |
+| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.18.4 |
 | `chatwoot-fix/internal_chat_controller.rb` | Controller corrigido (bugs 1 e 2 + `latest_ids` com `.reorder` + reply `in_reply_to`/`replied_to` + **forward** + **`create_group`** + `has_open_chat` só p/ conversas diretas) |
 | `chatwoot-fix/config/routes.rb` | Rotas (inclui `post :forward` e `post :create_group` — a base v4.14.2 não tem) |
 | `chatwoot-fix/app/services/whatsapp/incoming_message_base_service.rb` | Sanitização de filename de anexos recebidos (corta o sufixo `;filename*=`) — v4.17.6 |
 | `chatwoot-fix/app/services/messages/in_reply_to_message_builder.rb` | Reply/quote resolve mensagens citadas de conversas ANTIGAS do contato + expõe `in_reply_to_conversation_id` — v4.17.6 |
-| `chatwoot-fix/InternalChatLayout.vue` | Componente corrigido (scroll + merge + caixa nova + menu de contexto + **Responder** + edição melhorada + **links clicáveis** + **forward** + **emoji** + **Selecionar no menu** + **separador de data sticky por dia** + **`+` = conversa direta + botão 👥 Novo Grupo** + **fix ícone 👥** `icon="people"`) — referência |
-| `chatwoot-fix/message/Message.vue` | Componente do chat do cliente com **duplo clique para responder** — referência |
+| `chatwoot-fix/InternalChatLayout.vue` | Componente corrigido (scroll + merge + caixa nova + menu de contexto + **Responder** + edição melhorada + **links clicáveis** + **forward** + **emoji** + **Selecionar no menu** + **separador de data sticky por dia** + **`+` = conversa direta + botão 👥 Novo Grupo** + **fix ícone 👥** `icon="people"` + **flash da msg citada** `internal-msg-highlight`) — referência |
+| `chatwoot-fix/message/Message.vue` | Componente do chat do cliente com **duplo clique para responder** + **flash da msg citada** `message-flash-highlight` (ouvinte `SCROLL_TO_MESSAGE` com default `={}` + guarda — fix v4.18.4) — referência |
 | `chatwoot-fix/message/MessageList.vue` | Prévia de reply/quote busca da conversa certa (`in_reply_to_conversation_id`) — v4.17.6 |
 | `chatwoot-fix/message/bubbles/Base.vue` | Clique na citação de outra conversa navega até ela (`?messageId=`) — v4.17.6 |
 | `chatwoot-fix/copilot/CopilotLauncher.vue` | Launcher do Copiloto — **sobe no Chat Interno** para não tampar o botão de enviar (v4.17.2) |
