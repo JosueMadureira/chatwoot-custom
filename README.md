@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.17.9` | **Atual + EM PRODUÇÃO** (deploy 2026-08-11) — v4.17.8 + **emojis maiores nas mensagens** (35% maiores que o texto, via MessageFormatter + `emoji-regex`) e **no picker de emoji** (itens 24px, botões 36px, diálogo maior) no Chat Interno, no dashboard e no widget |
+| `josuemadureira/chatwoot-custom:v4.18.0` | **Atual + EM PRODUÇÃO** (deploy 2026-08-12) — v4.17.9 + **reações de mensagens com emoji** no Chat Interno (hover → picker rápido, chips com contagem, toggle estilo WhatsApp) + **anexar agora fica no composer** (igual Ctrl+V: preview, escreve texto e Envia) + **duplo clique para responder removido** (só botão direito) |
+| `josuemadureira/chatwoot-custom:v4.17.9` | v4.17.8 + **emojis maiores nas mensagens** (35% maiores que o texto, via MessageFormatter + `emoji-regex`) e **no picker de emoji** (itens 24px, botões 36px, diálogo maior) no Chat Interno, no dashboard e no widget |
 | `josuemadureira/chatwoot-custom:v4.17.8` | v4.17.7 + **painel de detalhes de grupo** no Chat Interno (ⓘ: ver participantes, admin renomeia/adiciona/remove, não-admin sai do grupo) + **contador de não lidas por conversa** (pill azul estilo WhatsApp) + botões maiores + grupo exige mínimo 2 pessoas |
 | `josuemadureira/chatwoot-custom:v4.17.7` | v4.17.6 + **fix do botão 👥 invisível** no Chat Interno (o ícone `people-outline` era buscado como `people-outline-outline`, que não existe → crash no render; agora é `people`) |
 | `josuemadureira/chatwoot-custom:v4.17.6` | v4.17.5 + **fix nome de arquivos recebidos** (remove o sufixo `;filename*=`), **reply/quote resolve mensagens de conversas antigas** (prévia + navegação) e **grupos no Chat Interno** (`+` = conversa direta, botão 👥 cria grupo com nome, membros de grupo podem receber conversa direta) |
@@ -34,7 +35,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.17.9
+docker pull josuemadureira/chatwoot-custom:v4.18.0
 ```
 
 ---
@@ -45,7 +46,8 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [v4.17.9](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.9) — **Latest** | Emojis maiores nas mensagens (35%) + picker de emoji maior (itens 24px, botões 36px) em todo o Chatwoot |
+| [v4.18.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.0) — **Latest** | Reações com emoji no Chat Interno (estilo WhatsApp) + anexar fica no composer (igual Ctrl+V) + remoção do duplo clique para responder |
+| [v4.17.9](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.9) | Emojis maiores nas mensagens (35%) + picker de emoji maior (itens 24px, botões 36px) em todo o Chatwoot |
 | [v4.17.8](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.8) | Painel de detalhes de grupo (admin renomeia/adiciona/remove; não-admin sai) + contador de não lidas por conversa |
 | [v4.17.7](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.7) | Fix do botão 👥 invisível no Chat Interno (ícone `people-outline` → `people`) |
 | [v4.17.6](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.17.6) | Fix do `;filename*=` nos nomes de arquivos recebidos + reply/quote de conversas antigas (prévia + navegação) + grupos no Chat Interno |
@@ -67,6 +69,15 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 ---
 
 ## ✨ Funcionalidades Implementadas
+
+### v4.18.0 – Reações + anexo no composer + remover duplo clique (2026-08-12)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.17.9`. Frontend + backend do Chat Interno. **EM PRODUÇÃO** (deploy autorizado, 2026-08-12).
+
+- 😍 **Reações de mensagens com emoji (Chat Interno, estilo WhatsApp):** hover na mensagem → botão de reação no canto inferior da bolha → picker rápido (👍 ❤️ 😂 😮 😢 🙏 🔥 🎉). **Chips com contagem** abaixo da bolha (`👍 2`, highlight azul se você já reagiu); clicar no mesmo emoji **remove**, reagir com outro **troca**. Backend próprio (não depende da Meta): reações em `content_attributes['reactions']` + nova action `POST /internal_chat/:id/react_message` (só participantes da conversa).
+- 📎 **Anexar arquivo agora fica no composer (não envia direto):** antes o clipe mandava o documento na hora; agora fica como preview no composer (imagem = thumbnail, documento = chip com nome) e só envia quando você digita e aperta **Enviar (↵)** — igual ao Ctrl+V. Dá para remover o anexo pendente (×) e escolher o mesmo arquivo de novo.
+- 🖱️ **Duplo clique para responder REMOVIDO:** duplo clique não abre mais o reply (atrapalhava copiar texto); **Responder só pelo botão direito** (menu → "Responder").
+- **Arquivos:** `internal_chat_controller.rb` (action `react_message` + `reactions` no `serialize_message`), `config/routes.rb` (rota member), `InternalChatLayout.vue` (reações + staging de anexos + remoção do duplo clique).
 
 ### v4.17.9 – Emojis maiores nas mensagens + picker (2026-08-11)
 
