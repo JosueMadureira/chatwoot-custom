@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.18.4` | **Atual + EM PRODUÇÃO** (deploy 2026-08-12) — v4.18.3 + **fix crítico do envio falsamente marcado como "não enviado"** (o handler do flash do quote desestruturava payload `undefined` do `SCROLL_TO_MESSAGE` → `TypeError` → mensagem ficava vermelha mesmo sendo entregue; agora o handler tem default `= {}` + guarda — flash do quote mantido e envio normalizado) |
+| `josuemadureira/chatwoot-custom:v4.18.5` | **Atual + EM PRODUÇÃO** (deploy 2026-08-20) — v4.18.4 + **fix: Chat Interno desaparecia para agentes com função customizada (Custom Role)** (a rota exigia `agent`/`administrator`; quem tinha role customizada como "Atendente" não tinha nenhuma das duas → menu some. Agora libera também para `custom_role`, igual outras telas do Chatwoot) |
+| `josuemadureira/chatwoot-custom:v4.18.4` | v4.18.3 + **fix crítico do envio falsamente marcado como "não enviado"** (o handler do flash do quote desestruturava payload `undefined` do `SCROLL_TO_MESSAGE` → `TypeError` → mensagem ficava vermelha mesmo sendo entregue; agora o handler tem default `= {}` + guarda — flash do quote mantido e envio normalizado) |
 | `josuemadureira/chatwoot-custom:v4.18.3` | v4.18.2 + **mensagem marcada/citada "pisca em amarelo" ao clicar na prévia do quote** (estilo WhatsApp, rola até a mensagem exata e destaca) — no chat com cliente e no Chat Interno |
 | `josuemadureira/chatwoot-custom:v4.18.2` | v4.18.1 + **fix definitivo do check azul ao responder** (`create_message` agora marca a leitura — se um colega responde sua mensagem mesmo com a conversa já aberta, o check ✓✓ azul acende na hora; antes ficava cinza para sempre nesse cenário) |
 | `josuemadureira/chatwoot-custom:v4.18.1` | v4.18.0 + **fix da confirmação de leitura (check ✓✓ azul) e do contador de não lidas** (mensagens que chegam com a conversa aberta agora são marcadas como lidas no polling — antes só ao abrir) + **botão "+" no fim dos emojis rápidos de reação** (abre o picker completo de emojis) + **arquivos enviados maiores** (imagens 200×150 → 280×210, documento com chip maior) |
@@ -39,7 +40,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.18.4
+docker pull josuemadureira/chatwoot-custom:v4.18.5
 ```
 
 ---
@@ -50,7 +51,8 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [v4.18.4](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.4) — **Latest** | Fix crítico do envio falsamente marcado como "não enviado" (handler do flash do quote com default `={}` + guarda; envio normalizado, flash do quote mantido) |
+| [v4.18.5](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.5) — **Latest** | Fix: Chat Interno desaparecia para agentes com função customizada (Custom Role) — rota agora libera `custom_role` além de `agent`/`administrator` |
+| [v4.18.4](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.4) | Fix crítico do envio falsamente marcado como "não enviado" (handler do flash do quote com default `={}` + guarda; envio normalizado, flash do quote mantido) |
 | [v4.18.3](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.3) | Mensagem marcada/citada "pisca em amarelo" ao clicar na prévia do quote (estilo WhatsApp) — chat com cliente e Chat Interno |
 | [v4.18.2](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.2) | Fix definitivo do check azul ao responder: `create_message` agora marca a leitura — respondendo a conversa (mesmo sem reabrir) o check ✓✓ do remetente acende na hora |
 | [v4.18.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.1) | Fix da confirmação de leitura (✓✓ azul) e do contador de não lidas (leitura agora marca no polling, sem reabrir) + botão "+" nos emojis de reação (picker completo) + arquivos enviados maiores |
@@ -78,9 +80,19 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 ## ✨ Funcionalidades Implementadas
 
+### v4.18.5 – Fix: Chat Interno some para agentes com função customizada (2026-08-20)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.18.4`. Só o frontend mudou (rota + assets Vite recompilados). **EM PRODUÇÃO** (deploy autorizado, 2026-08-20). **ESTE É O ÚLTIMO.**
+
+- 🟥 **Sintoma:** ao criar uma função customizada (ex: "Atendente") na tela de Custom Roles e atribuí-la a agentes, o item **"Chat Interno" desaparecia do menu lateral** para esses agentes — e a rota ficava inacessível (redirecionava para o dashboard).
+- **Root cause:** a rota do Chat Interno (`internal_chat/routes.js`) define `meta.permissions: ['administrator', 'agent']`. Quando um usuário tem uma `custom_role` atribuída, o backend (`Enterprise::AccountUser#permissions`) retorna `custom_role.permissions + ['custom_role']` **em vez de** `['agent']`/`['administrator']` — mesmo que o usuário continue sendo um agente comum. Como a rota não aceitava `'custom_role'`, `hasPermissions` retornava `false` e o item do menu (`SidebarGroup.vue`, via `<Policy>`/`usePolicy`) e a própria rota ficavam bloqueados para qualquer agente com função customizada.
+- 🔧 **Fix:** `meta.permissions: ['administrator', 'agent', 'custom_role']` — mesmo padrão já usado em outras telas do Chatwoot (ex: `notifications/routes.js`).
+- ✅ **Resultado:** o Chat Interno agora aparece e funciona **independente da função** (padrão ou customizada) atribuída ao agente.
+- **Arquivo:** `app/javascript/dashboard/routes/dashboard/internal_chat/routes.js`
+
 ### v4.18.4 – Fix crítico: envio falsamente marcado como "não enviado" (2026-08-12)
 
-**Base:** `josuemadureira/chatwoot-custom:v4.18.3`. Frontend do chat com cliente (`Message.vue`). **EM PRODUÇÃO** (deploy autorizado, 2026-08-12). **ESTE É O ÚLTIMO.**
+**Base:** `josuemadureira/chatwoot-custom:v4.18.3`. Frontend do chat com cliente (`Message.vue`). **EM PRODUÇÃO** (deploy autorizado, 2026-08-12).
 
 - 🟥 **Sintoma (introduzido na v4.18.3):** ao enviar qualquer mensagem ao cliente, a bolha ficava **vermelha** com o aviso **"Não foi possível enviar esta mensagem, por favor, tente novamente mais tarde"** — e o erro **sumia ao reiniciar** (Ctrl+Shift+R). O usuário reenviou várias vezes achando que não tinha ido.
 - **A verdade:** as mensagens **ESTAVAM sendo entregues** no servidor (banco mostrava `delivered`/`read`) — era **alarme falso** no frontend. Mas, como parecia falha, o usuário reenviou → **duplicatas** chegaram aos clientes entre ~18:26–18:42.
@@ -409,11 +421,11 @@ COPY copilot/CopilotLauncher.vue /app/app/javascript/dashboard/components-next/c
 #
 # 2. Build da imagem
 cd chatwoot-fix
-docker build -t josuemadureira/chatwoot-custom:v4.18.4 .
+docker build -t josuemadureira/chatwoot-custom:v4.18.5 .
 
 # 3. Push para o Docker Hub
 docker login -u josuemadureira
-docker push josuemadureira/chatwoot-custom:v4.18.4
+docker push josuemadureira/chatwoot-custom:v4.18.5
 ```
 
 ---
@@ -441,10 +453,10 @@ NODE_ENV=production pnpm exec vite build
 
 ## 🚀 Deploy
 
-O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.18.4`.
+O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.18.5`.
 
 1. Faça **backup do compose** antes de editar.
-2. No compose, troque a versão (`v4.18.3` → `v4.18.4`) em `chatwoot_app` e `chatwoot_sidekiq`.
+2. No compose, troque a versão (`v4.18.4` → `v4.18.5`) em `chatwoot_app` e `chatwoot_sidekiq`.
 3. Suba apenas os serviços alterados (Postgres/Redis ficam intocados):
 
 ```bash
@@ -459,7 +471,7 @@ docker compose -f <caminho-compose> -p chatwoot up -d chatwoot_app chatwoot_side
 
 | Pasta/Arquivo | Conteúdo |
 |---|---|
-| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.18.4 |
+| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.18.5 |
 | `chatwoot-fix/internal_chat_controller.rb` | Controller corrigido (bugs 1 e 2 + `latest_ids` com `.reorder` + reply `in_reply_to`/`replied_to` + **forward** + **`create_group`** + `has_open_chat` só p/ conversas diretas) |
 | `chatwoot-fix/config/routes.rb` | Rotas (inclui `post :forward` e `post :create_group` — a base v4.14.2 não tem) |
 | `chatwoot-fix/app/services/whatsapp/incoming_message_base_service.rb` | Sanitização de filename de anexos recebidos (corta o sufixo `;filename*=`) — v4.17.6 |
