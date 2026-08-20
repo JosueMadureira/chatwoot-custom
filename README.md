@@ -10,7 +10,12 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:v4.18.5` | **Atual + EM PRODUÇÃO** (deploy 2026-08-20) — v4.18.4 + **fix: Chat Interno desaparecia para agentes com função customizada (Custom Role)** (a rota exigia `agent`/`administrator`; quem tinha role customizada como "Atendente" não tinha nenhuma das duas → menu some. Agora libera também para `custom_role`, igual outras telas do Chatwoot) |
+| `josuemadureira/chatwoot-custom:v4.18.10` | **Atual + EM PRODUÇÃO** (deploy 2026-08-20) — v4.18.9 + **nova permissão de Função Personalizada "Gerenciar conversas do time atribuído"** (para contas onde os Times são os departamentos reais, com Caixa de Entrada única) + **fix crítico: permissões de conversa eram hierarquia exclusiva, agora somam** (marcar duas permissões juntas escondia conversas que uma delas deveria liberar) |
+| `josuemadureira/chatwoot-custom:v4.18.9` | v4.18.8 + **aba "Participando" na tela principal de conversas** (entre Minhas e Não atribuídas), aparece só quando há conversas de participação |
+| `josuemadureira/chatwoot-custom:v4.18.8` | v4.18.7 + **fix real (backend) das conversas de participante que somiam** — o `assigneeType: 'me'` continuava sendo enviado ao servidor e cortava de novo por atribuição |
+| `josuemadureira/chatwoot-custom:v4.18.7` | v4.18.6 + **fix (frontend) das conversas de participante que somiam na tela "Participando"** (filtro duplicado por atribuição removido) |
+| `josuemadureira/chatwoot-custom:v4.18.6` | v4.18.5 + **badge do Chat Interno no menu** (carrega ao abrir o Chatwoot, não só ao entrar na tela) + **número no ícone do app** (barra de tarefas do Windows, via Badging API) + fix custom_role em conversas de participante |
+| `josuemadureira/chatwoot-custom:v4.18.5` | v4.18.4 + **fix: Chat Interno desaparecia para agentes com função customizada (Custom Role)** (a rota exigia `agent`/`administrator`; quem tinha role customizada como "Atendente" não tinha nenhuma das duas → menu some. Agora libera também para `custom_role`, igual outras telas do Chatwoot) |
 | `josuemadureira/chatwoot-custom:v4.18.4` | v4.18.3 + **fix crítico do envio falsamente marcado como "não enviado"** (o handler do flash do quote desestruturava payload `undefined` do `SCROLL_TO_MESSAGE` → `TypeError` → mensagem ficava vermelha mesmo sendo entregue; agora o handler tem default `= {}` + guarda — flash do quote mantido e envio normalizado) |
 | `josuemadureira/chatwoot-custom:v4.18.3` | v4.18.2 + **mensagem marcada/citada "pisca em amarelo" ao clicar na prévia do quote** (estilo WhatsApp, rola até a mensagem exata e destaca) — no chat com cliente e no Chat Interno |
 | `josuemadureira/chatwoot-custom:v4.18.2` | v4.18.1 + **fix definitivo do check azul ao responder** (`create_message` agora marca a leitura — se um colega responde sua mensagem mesmo com a conversa já aberta, o check ✓✓ azul acende na hora; antes ficava cinza para sempre nesse cenário) |
@@ -40,7 +45,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:v4.18.5
+docker pull josuemadureira/chatwoot-custom:v4.18.10
 ```
 
 ---
@@ -51,7 +56,12 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [v4.18.5](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.5) — **Latest** | Fix: Chat Interno desaparecia para agentes com função customizada (Custom Role) — rota agora libera `custom_role` além de `agent`/`administrator` |
+| [v4.18.10](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.10) — **Latest** | Permissão "Gerenciar conversas do time atribuído" + fix crítico: permissões de conversa somam (não são mais hierarquia exclusiva) |
+| [v4.18.9](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.9) | Aba "Participando" na tela principal de conversas (entre Minhas e Não atribuídas) |
+| [v4.18.8](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.8) | Fix real (backend) das conversas de participante que somiam |
+| [v4.18.7](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.7) | Fix (frontend) das conversas de participante que somiam na tela "Participando" |
+| [v4.18.6](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.6) | Badge do Chat Interno no menu + número no ícone do app (Badging API) |
+| [v4.18.5](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.5) | Fix: Chat Interno desaparecia para agentes com função customizada (Custom Role) — rota agora libera `custom_role` além de `agent`/`administrator` |
 | [v4.18.4](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.4) | Fix crítico do envio falsamente marcado como "não enviado" (handler do flash do quote com default `={}` + guarda; envio normalizado, flash do quote mantido) |
 | [v4.18.3](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.3) | Mensagem marcada/citada "pisca em amarelo" ao clicar na prévia do quote (estilo WhatsApp) — chat com cliente e Chat Interno |
 | [v4.18.2](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/v4.18.2) | Fix definitivo do check azul ao responder: `create_message` agora marca a leitura — respondendo a conversa (mesmo sem reabrir) o check ✓✓ do remetente acende na hora |
@@ -80,9 +90,58 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 ## ✨ Funcionalidades Implementadas
 
+### v4.18.10 – Permissão de time + fix permissões que não somavam (2026-08-20)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.18.9`. Backend + frontend. **EM PRODUÇÃO** (deploy autorizado, 2026-08-20). **ESTE É O ÚLTIMO.**
+
+#### ✨ Nova permissão: "Gerenciar conversas do time atribuído"
+- Contexto do cliente: o Chatwoot foi desenhado para departamentos = Caixas de Entrada, mas nesta conta todos os departamentos (Times) atendem o **mesmo número/inbox** — a permissão certa precisava ser por **Time**, não por Inbox.
+- Nova permissão de Função Personalizada `conversation_team_manage` ("Gerenciar conversas do time atribuído e aquelas atribuídas a elas") — libera acesso a qualquer conversa atribuída a um Time do qual o agente faça parte, além das atribuídas a ele individualmente.
+- **Backend:** `CustomRole::PERMISSIONS` (nova entrada), `Enterprise::Conversations::PermissionFilterService` (filtro de listagem por `team_id: user.teams`), `Enterprise::ConversationPolicy` (`permits_team_manage?` reaproveitando `team_access?` já existente na policy base).
+- **Frontend:** `constants/permissions.js` (`CONVERSATION_TEAM_PERMISSIONS`), `conversation.routes.js` (rota aceita a nova permissão), `CustomRoleModal.vue` (checkbox aparece automaticamente via `AVAILABLE_CUSTOM_ROLE_PERMISSIONS`), i18n.
+
+#### 🐛 Fix crítico: permissões de conversa eram hierarquia exclusiva, não soma
+- **Sintoma:** ao marcar **duas ou mais** permissões de conversa juntas numa Função Personalizada (ex: "Não atribuídas" + "Participando"), o sistema aplicava **só a primeira** que desse match num `if/elsif` — escondendo conversas que a outra permissão deveria liberar. Provável causa de reclamações de agentes não vendo conversas esperadas.
+- **Fix:** as permissões agora **somam** (União de conjuntos) tanto no backend (`PermissionFilterService#filter_by_permissions` monta uma lista de scopes e faz `UNION`) quanto no frontend (`applyRoleFilter` em `helpers.js`, usado nas contagens/filtros em tempo real da aba "Todos").
+- **Arquivos:** `enterprise/app/models/custom_role.rb`, `enterprise/app/services/enterprise/conversations/permission_filter_service.rb`, `enterprise/app/policies/enterprise/conversation_policy.rb`, `app/javascript/dashboard/constants/permissions.js`, `app/javascript/dashboard/store/modules/conversations/helpers.js`, `app/javascript/dashboard/store/modules/conversations/getters.js`, `app/javascript/dashboard/routes/dashboard/conversation/conversation.routes.js`, `app/javascript/dashboard/routes/dashboard/settings/customRoles/component/CustomRoleModal.vue`
+
+### v4.18.9 – Aba "Participando" na tela principal de conversas (2026-08-20)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.18.8`. Backend + frontend.
+
+- ➕ **Nova aba "Participando"** entre **Minhas** e **Não atribuídas**, na tela principal de conversas — mostra as conversas onde o usuário participa (mesmo sem ser assignee).
+- A aba só aparece quando há **ao menos 1** conversa de participação; some quando não há nenhuma (e volta automaticamente para "Minhas" se o usuário estiver nela quando isso acontecer).
+- **Backend:** `ConversationFinder#set_count_for_all_conversations` agora retorna `participating_count`.
+- **Arquivos:** `app/finders/conversation_finder.rb`, `app/javascript/dashboard/components/ChatList.vue`, `app/javascript/dashboard/store/modules/conversationStats.js`, `app/javascript/dashboard/constants/globals.js`, `app/javascript/dashboard/constants/permissions.js`, i18n `chatlist.json`
+
+### v4.18.8 – Fix real (backend) das conversas de participante que somiam (2026-08-20)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.18.7`. Só o backend mudou (`conversation_finder.rb`).
+
+- 🐛 **A v4.18.7 não resolveu de vez:** mesmo escondendo as abas visualmente, o parâmetro `assigneeType: 'me'` continuava sendo enviado ao servidor por baixo dos panos. O `ConversationFinder` aplicava esse filtro **por cima** do filtro de participação já correto, cortando de novo por `assignee_id`.
+- 🔧 **Fix:** quando a tela é "Participando" (`conversation_type == 'participating'`), o backend não aplica mais o filtro extra de atribuição.
+- **Arquivo:** `app/finders/conversation_finder.rb`
+
+### v4.18.7 – Fix (frontend) das conversas de participante que somiam (2026-08-20)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.18.6`. Só o frontend mudou (`ChatList.vue`).
+
+- 🐛 **Sintoma:** a tela "Participando" tinha um filtro extra por atribuição (aba Minhas/Não atribuídas/Todas) rodando por cima da lista já filtrada por participação — escondendo justamente as conversas onde o usuário é só participante.
+- 🔧 **Fix:** removido o filtro duplicado; a aba de filtro também foi ocultada nessa tela.
+- **Arquivo:** `app/javascript/dashboard/components/ChatList.vue`
+
+### v4.18.6 – Badge do Chat Interno + número no ícone do app (2026-08-20)
+
+**Base:** `josuemadureira/chatwoot-custom:v4.18.5`. Frontend + backend.
+
+- 🔔 **Contador do Chat Interno no menu** agora é buscado assim que o Chatwoot abre (não só ao entrar na tela do Chat Interno) e atualizado a cada 15s.
+- 🔢 **Número no ícone do app** (barra de tarefas do Windows) via Badging API (`navigator.setAppBadge`), somando Caixa de Entrada + Chat Interno — igual WhatsApp Desktop/Outlook (requer o Chatwoot instalado como PWA).
+- 🐛 **Fix:** custom role com permissão "participando" não via conversas onde o usuário era apenas participante.
+- **Arquivos:** `app/javascript/dashboard/components-next/sidebar/Sidebar.vue`, `enterprise/app/services/enterprise/conversations/permission_filter_service.rb`
+
 ### v4.18.5 – Fix: Chat Interno some para agentes com função customizada (2026-08-20)
 
-**Base:** `josuemadureira/chatwoot-custom:v4.18.4`. Só o frontend mudou (rota + assets Vite recompilados). **EM PRODUÇÃO** (deploy autorizado, 2026-08-20). **ESTE É O ÚLTIMO.**
+**Base:** `josuemadureira/chatwoot-custom:v4.18.4`. Só o frontend mudou (rota + assets Vite recompilados).
 
 - 🟥 **Sintoma:** ao criar uma função customizada (ex: "Atendente") na tela de Custom Roles e atribuí-la a agentes, o item **"Chat Interno" desaparecia do menu lateral** para esses agentes — e a rota ficava inacessível (redirecionava para o dashboard).
 - **Root cause:** a rota do Chat Interno (`internal_chat/routes.js`) define `meta.permissions: ['administrator', 'agent']`. Quando um usuário tem uma `custom_role` atribuída, o backend (`Enterprise::AccountUser#permissions`) retorna `custom_role.permissions + ['custom_role']` **em vez de** `['agent']`/`['administrator']` — mesmo que o usuário continue sendo um agente comum. Como a rota não aceitava `'custom_role'`, `hasPermissions` retornava `false` e o item do menu (`SidebarGroup.vue`, via `<Policy>`/`usePolicy`) e a própria rota ficavam bloqueados para qualquer agente com função customizada.
@@ -421,11 +480,11 @@ COPY copilot/CopilotLauncher.vue /app/app/javascript/dashboard/components-next/c
 #
 # 2. Build da imagem
 cd chatwoot-fix
-docker build -t josuemadureira/chatwoot-custom:v4.18.5 .
+docker build -t josuemadureira/chatwoot-custom:v4.18.10 .
 
 # 3. Push para o Docker Hub
 docker login -u josuemadureira
-docker push josuemadureira/chatwoot-custom:v4.18.5
+docker push josuemadureira/chatwoot-custom:v4.18.10
 ```
 
 ---
@@ -453,10 +512,10 @@ NODE_ENV=production pnpm exec vite build
 
 ## 🚀 Deploy
 
-O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.18.5`.
+O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:v4.18.10`.
 
 1. Faça **backup do compose** antes de editar.
-2. No compose, troque a versão (`v4.18.4` → `v4.18.5`) em `chatwoot_app` e `chatwoot_sidekiq`.
+2. No compose, troque a versão (`v4.18.9` → `v4.18.10`) em `chatwoot_app` e `chatwoot_sidekiq`.
 3. Suba apenas os serviços alterados (Postgres/Redis ficam intocados):
 
 ```bash
@@ -471,7 +530,7 @@ docker compose -f <caminho-compose> -p chatwoot up -d chatwoot_app chatwoot_side
 
 | Pasta/Arquivo | Conteúdo |
 |---|---|
-| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.18.5 |
+| `chatwoot-fix/Dockerfile` | Overlay da imagem v4.18.10 |
 | `chatwoot-fix/internal_chat_controller.rb` | Controller corrigido (bugs 1 e 2 + `latest_ids` com `.reorder` + reply `in_reply_to`/`replied_to` + **forward** + **`create_group`** + `has_open_chat` só p/ conversas diretas) |
 | `chatwoot-fix/config/routes.rb` | Rotas (inclui `post :forward` e `post :create_group` — a base v4.14.2 não tem) |
 | `chatwoot-fix/app/services/whatsapp/incoming_message_base_service.rb` | Sanitização de filename de anexos recebidos (corta o sufixo `;filename*=`) — v4.17.6 |
