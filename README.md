@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:1.20.0` | **Atual + EM PRODUÇÃO** (deploy 2026-08-21) — 1.19.0 + **imagem personalizada no Chat Interno** quando nenhuma conversa está selecionada |
+| `josuemadureira/chatwoot-custom:1.20.1` | **Atual + EM PRODUÇÃO** (deploy 2026-08-21) — 1.20.0 + **fix: fundo do Chat Interno acinzentado** (era `bg-n-background` #f7f7f7, agora `bg-n-surface-1` #fefefe, igual ao chat com cliente) |
+| `josuemadureira/chatwoot-custom:1.20.0` | 1.19.0 + **imagem personalizada no Chat Interno** quando nenhuma conversa está selecionada |
 | `josuemadureira/chatwoot-custom:1.19.0` | 1.18.0 + **imagem personalizada na tela "sem conversa selecionada"** (chat com cliente, claro e escuro) |
 | `josuemadureira/chatwoot-custom:1.18.0` | 1.17.1 + **nome da empresa aparece no picker de nova conversa** ("Contato - Empresa" ao buscar pelo botão de lápis) |
 | `josuemadureira/chatwoot-custom:1.17.1` | 1.17.0 + **fix: notificações do Chat Interno apareciam na Caixa de Entrada** (mesmo `notification_type`; agora são excluídas da contagem geral, o Chat Interno já tem seu próprio contador) |
@@ -49,7 +50,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:1.20.0
+docker pull josuemadureira/chatwoot-custom:1.20.1
 ```
 
 ---
@@ -60,7 +61,8 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [1.20.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.20.0) — **Latest** | Imagem personalizada no Chat Interno (sem conversa selecionada) |
+| [1.20.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.20.1) — **Latest** | Fix: fundo do Chat Interno acinzentado (agora branco, igual ao chat com cliente) |
+| [1.20.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.20.0) | Imagem personalizada no Chat Interno (sem conversa selecionada) |
 | [1.19.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.19.0) | Imagem personalizada na tela "sem conversa selecionada" (chat com cliente) |
 | [1.18.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.18.0) | Nome da empresa no picker de nova conversa ("Contato - Empresa") |
 | [1.17.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.17.1) | Fix: notificações do Chat Interno apareciam na Caixa de Entrada |
@@ -98,9 +100,18 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 ## ✨ Funcionalidades Implementadas
 
+### 1.20.1 – Fix: fundo do Chat Interno acinzentado (2026-08-21)
+
+**Base:** `josuemadureira/chatwoot-custom:1.20.0`. Só o frontend mudou (`InternalChatLayout.vue`). **EM PRODUÇÃO** (deploy autorizado, 2026-08-21). **ESTE É O ÚLTIMO.**
+
+- 🐛 **Sintoma:** o fundo do Chat Interno ficava visivelmente acinzentado em comparação com o chat com cliente.
+- **Causa:** o container raiz usava `bg-n-background` (`#f7f7f7`), enquanto o chat com cliente usa `bg-n-surface-1` (`#fefefe`) na mesma área.
+- 🔧 **Fix:** trocada a classe para `bg-n-surface-1` — afeta tanto a área de mensagens quanto o estado "sem conversa selecionada".
+- **Arquivo:** `app/javascript/dashboard/components-next/InternalChat/InternalChatLayout.vue`
+
 ### 1.20.0 – Imagem personalizada no Chat Interno (sem conversa selecionada) (2026-08-21)
 
-**Base:** `josuemadureira/chatwoot-custom:1.19.0`. Só o frontend mudou (imagem + `InternalChatLayout.vue`). **EM PRODUÇÃO** (deploy autorizado, 2026-08-21). **ESTE É O ÚLTIMO.**
+**Base:** `josuemadureira/chatwoot-custom:1.19.0`. Só o frontend mudou (imagem + `InternalChatLayout.vue`).
 
 - ✨ Mesma ideia da 1.19.0, agora no Chat Interno: quando nenhuma conversa está selecionada, aparece uma imagem personalizada no lugar do ícone genérico. Texto "Selecione uma conversa ou clique em + para iniciar" mantido.
 - **Arquivos:** `app/javascript/dashboard/assets/images/no-internal-chat-custom.jpg`, `app/javascript/dashboard/components-next/InternalChat/InternalChatLayout.vue`
@@ -518,11 +529,11 @@ COPY copilot/CopilotLauncher.vue /app/app/javascript/dashboard/components-next/c
 #
 # 2. Build da imagem
 cd chatwoot-fix
-docker build -t josuemadureira/chatwoot-custom:1.20.0 .
+docker build -t josuemadureira/chatwoot-custom:1.20.1 .
 
 # 3. Push para o Docker Hub
 docker login -u josuemadureira
-docker push josuemadureira/chatwoot-custom:1.20.0
+docker push josuemadureira/chatwoot-custom:1.20.1
 ```
 
 ---
@@ -550,10 +561,10 @@ NODE_ENV=production pnpm exec vite build
 
 ## 🚀 Deploy
 
-O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:1.20.0`.
+O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:1.20.1`.
 
 1. Faça **backup do compose** antes de editar.
-2. No compose, troque a versão (`1.19.0` → `1.20.0`) em `chatwoot_app` e `chatwoot_sidekiq`.
+2. No compose, troque a versão (`1.20.0` → `1.20.1`) em `chatwoot_app` e `chatwoot_sidekiq`.
 3. Suba apenas os serviços alterados (Postgres/Redis ficam intocados):
 
 ```bash
@@ -568,7 +579,7 @@ docker compose -f <caminho-compose> -p chatwoot up -d chatwoot_app chatwoot_side
 
 | Pasta/Arquivo | Conteúdo |
 |---|---|
-| `chatwoot-fix/Dockerfile` | Overlay da imagem 1.20.0 |
+| `chatwoot-fix/Dockerfile` | Overlay da imagem 1.20.1 |
 | `chatwoot-fix/internal_chat_controller.rb` | Controller corrigido (bugs 1 e 2 + `latest_ids` com `.reorder` + reply `in_reply_to`/`replied_to` + **forward** + **`create_group`** + `has_open_chat` só p/ conversas diretas) |
 | `chatwoot-fix/config/routes.rb` | Rotas (inclui `post :forward` e `post :create_group` — a base v4.14.2 não tem) |
 | `chatwoot-fix/app/services/whatsapp/incoming_message_base_service.rb` | Sanitização de filename de anexos recebidos (corta o sufixo `;filename*=`) — 1.10.0 |
