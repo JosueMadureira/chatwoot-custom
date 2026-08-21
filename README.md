@@ -10,7 +10,9 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:1.17.0` | **Atual + EM PRODUÇÃO** (deploy 2026-08-20) — 1.16.0 + **nova permissão de Função Personalizada "Gerenciar conversas do time atribuído"** (para contas onde os Times são os departamentos reais, com Caixa de Entrada única) + **fix crítico: permissões de conversa eram hierarquia exclusiva, agora somam** (marcar duas permissões juntas escondia conversas que uma delas deveria liberar) |
+| `josuemadureira/chatwoot-custom:1.18.0` | **Atual + EM PRODUÇÃO** (deploy 2026-08-21) — 1.17.1 + **nome da empresa aparece no picker de nova conversa** ("Contato - Empresa" ao buscar pelo botão de lápis) |
+| `josuemadureira/chatwoot-custom:1.17.1` | 1.17.0 + **fix: notificações do Chat Interno apareciam na Caixa de Entrada** (mesmo `notification_type`; agora são excluídas da contagem geral, o Chat Interno já tem seu próprio contador) |
+| `josuemadureira/chatwoot-custom:1.17.0` | 1.16.0 + **nova permissão de Função Personalizada "Gerenciar conversas do time atribuído"** (para contas onde os Times são os departamentos reais, com Caixa de Entrada única) + **fix crítico: permissões de conversa eram hierarquia exclusiva, agora somam** (marcar duas permissões juntas escondia conversas que uma delas deveria liberar) |
 | `josuemadureira/chatwoot-custom:1.16.0` | 1.15.2 + **aba "Participando" na tela principal de conversas** (entre Minhas e Não atribuídas), aparece só quando há conversas de participação |
 | `josuemadureira/chatwoot-custom:1.15.2` | 1.15.1 + **fix real (backend) das conversas de participante que somiam** — o `assigneeType: 'me'` continuava sendo enviado ao servidor e cortava de novo por atribuição |
 | `josuemadureira/chatwoot-custom:1.15.1` | 1.15.0 + **fix (frontend) das conversas de participante que somiam na tela "Participando"** (filtro duplicado por atribuição removido) |
@@ -45,7 +47,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:1.17.0
+docker pull josuemadureira/chatwoot-custom:1.18.0
 ```
 
 ---
@@ -56,7 +58,9 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [1.17.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.17.0) — **Latest** | Permissão "Gerenciar conversas do time atribuído" + fix crítico: permissões de conversa somam (não são mais hierarquia exclusiva) |
+| [1.18.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.18.0) — **Latest** | Nome da empresa no picker de nova conversa ("Contato - Empresa") |
+| [1.17.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.17.1) | Fix: notificações do Chat Interno apareciam na Caixa de Entrada |
+| [1.17.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.17.0) | Permissão "Gerenciar conversas do time atribuído" + fix crítico: permissões de conversa somam (não são mais hierarquia exclusiva) |
 | [1.16.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.16.0) | Aba "Participando" na tela principal de conversas (entre Minhas e Não atribuídas) |
 | [1.15.2](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.15.2) | Fix real (backend) das conversas de participante que somiam |
 | [1.15.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.15.1) | Fix (frontend) das conversas de participante que somiam na tela "Participando" |
@@ -89,9 +93,26 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 ---
 
 ## ✨ Funcionalidades Implementadas
+
+### 1.18.0 – Nome da empresa no picker de nova conversa (2026-08-21)
+
+**Base:** `josuemadureira/chatwoot-custom:1.17.1`. Só o frontend mudou (`ContactSelector.vue`). **EM PRODUÇÃO** (deploy autorizado, 2026-08-21). **ESTE É O ÚLTIMO.**
+
+- ✨ **Sintoma:** no botão de lápis (nova conversa), a busca já encontrava contatos pelo nome da empresa (o backend já buscava em `additional_attributes->>'company_name'`), mas o resultado exibido nunca mostrava a empresa — só nome + e-mail/telefone.
+- 🔧 **Fix:** o resultado da busca agora mostra **"Contato - Empresa"** quando o contato tem empresa cadastrada. Sem empresa, mostra só o nome, como antes.
+- **Arquivo:** `app/javascript/dashboard/components-next/NewConversation/components/ContactSelector.vue`
+
+### 1.17.1 – Fix: notificações do Chat Interno na Caixa de Entrada (2026-08-21)
+
+**Base:** `josuemadureira/chatwoot-custom:1.17.0`. Só o backend mudou (`notification_finder.rb`).
+
+- 🐛 **Sintoma:** notificações de mensagens novas do Chat Interno apareciam somadas no badge/sino da Caixa de Entrada — usam o mesmo `notification_type` (`assigned_conversation_new_message`) das conversas com cliente, e o `NotificationFinder` não distinguia as duas.
+- 🔧 **Fix:** `NotificationFinder#find_all_notifications` agora exclui notificações cujo `primary_actor` é uma conversa interna (`conversations.internal = true`). O Chat Interno já tem seu próprio contador dedicado.
+- **Arquivo:** `app/finders/notification_finder.rb`
+
 ### 1.17.0 – Permissão de time + fix permissões que não somavam (2026-08-20)
 
-**Base:** `josuemadureira/chatwoot-custom:1.16.0`. Backend + frontend. **EM PRODUÇÃO** (deploy autorizado, 2026-08-20). **ESTE É O ÚLTIMO.**
+**Base:** `josuemadureira/chatwoot-custom:1.16.0`. Backend + frontend.
 
 #### ✨ Nova permissão: "Gerenciar conversas do time atribuído"
 - Contexto do cliente: o Chatwoot foi desenhado para departamentos = Caixas de Entrada, mas nesta conta todos os departamentos (Times) atendem o **mesmo número/inbox** — a permissão certa precisava ser por **Time**, não por Inbox.
@@ -479,11 +500,11 @@ COPY copilot/CopilotLauncher.vue /app/app/javascript/dashboard/components-next/c
 #
 # 2. Build da imagem
 cd chatwoot-fix
-docker build -t josuemadureira/chatwoot-custom:1.17.0 .
+docker build -t josuemadureira/chatwoot-custom:1.18.0 .
 
 # 3. Push para o Docker Hub
 docker login -u josuemadureira
-docker push josuemadureira/chatwoot-custom:1.17.0
+docker push josuemadureira/chatwoot-custom:1.18.0
 ```
 
 ---
@@ -511,10 +532,10 @@ NODE_ENV=production pnpm exec vite build
 
 ## 🚀 Deploy
 
-O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:1.17.0`.
+O Chatwoot roda em Docker (gerenciado pelo Portainer). O compose usa as imagens `josuemadureira/chatwoot-custom:1.18.0`.
 
 1. Faça **backup do compose** antes de editar.
-2. No compose, troque a versão (`1.16.0` → `1.17.0`) em `chatwoot_app` e `chatwoot_sidekiq`.
+2. No compose, troque a versão (`1.17.1` → `1.18.0`) em `chatwoot_app` e `chatwoot_sidekiq`.
 3. Suba apenas os serviços alterados (Postgres/Redis ficam intocados):
 
 ```bash
@@ -529,7 +550,7 @@ docker compose -f <caminho-compose> -p chatwoot up -d chatwoot_app chatwoot_side
 
 | Pasta/Arquivo | Conteúdo |
 |---|---|
-| `chatwoot-fix/Dockerfile` | Overlay da imagem 1.17.0 |
+| `chatwoot-fix/Dockerfile` | Overlay da imagem 1.18.0 |
 | `chatwoot-fix/internal_chat_controller.rb` | Controller corrigido (bugs 1 e 2 + `latest_ids` com `.reorder` + reply `in_reply_to`/`replied_to` + **forward** + **`create_group`** + `has_open_chat` só p/ conversas diretas) |
 | `chatwoot-fix/config/routes.rb` | Rotas (inclui `post :forward` e `post :create_group` — a base v4.14.2 não tem) |
 | `chatwoot-fix/app/services/whatsapp/incoming_message_base_service.rb` | Sanitização de filename de anexos recebidos (corta o sufixo `;filename*=`) — 1.10.0 |
@@ -539,6 +560,8 @@ docker compose -f <caminho-compose> -p chatwoot up -d chatwoot_app chatwoot_side
 | `chatwoot-fix/message/MessageList.vue` | Prévia de reply/quote busca da conversa certa (`in_reply_to_conversation_id`) — 1.10.0 |
 | `chatwoot-fix/message/bubbles/Base.vue` | Clique na citação de outra conversa navega até ela (`?messageId=`) — 1.10.0 |
 | `chatwoot-fix/copilot/CopilotLauncher.vue` | Launcher do Copiloto — **sobe no Chat Interno** para não tampar o botão de enviar (1.7.2) |
+| `chatwoot-fix/app/finders/notification_finder.rb` | Exclui notificações do Chat Interno da contagem geral da Caixa de Entrada — 1.17.1 |
+| `chatwoot-fix/app/javascript/dashboard/components-next/NewConversation/components/ContactSelector.vue` | Mostra "Contato - Empresa" no picker de nova conversa — 1.18.0 |
 | `README.md` | Este documento |
 
 ---
