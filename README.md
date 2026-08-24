@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:1.20.1` | **Atual + EM PRODUÇÃO** (deploy 2026-08-21) — 1.20.0 + **fix: fundo do Chat Interno acinzentado** (era `bg-n-background` #f7f7f7, agora `bg-n-surface-1` #fefefe, igual ao chat com cliente) |
+| `josuemadureira/chatwoot-custom:1.21.0` | **Atual + EM PRODUÇÃO** (deploy 2026-08-24) — 1.20.1 + **marca da Penha animada nas telas "sem conversa selecionada"** (chat com cliente e Chat Interno): logo com brilho passando + constelação de quadradinhos que se afasta do mouse ao passar perto |
+| `josuemadureira/chatwoot-custom:1.20.1` | 1.20.0 + **fix: fundo do Chat Interno acinzentado** (era `bg-n-background` #f7f7f7, agora `bg-n-surface-1` #fefefe, igual ao chat com cliente) |
 | `josuemadureira/chatwoot-custom:1.20.0` | 1.19.0 + **imagem personalizada no Chat Interno** quando nenhuma conversa está selecionada |
 | `josuemadureira/chatwoot-custom:1.19.0` | 1.18.0 + **imagem personalizada na tela "sem conversa selecionada"** (chat com cliente, claro e escuro) |
 | `josuemadureira/chatwoot-custom:1.18.0` | 1.17.1 + **nome da empresa aparece no picker de nova conversa** ("Contato - Empresa" ao buscar pelo botão de lápis) |
@@ -50,7 +51,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:1.20.1
+docker pull josuemadureira/chatwoot-custom:1.21.0
 ```
 
 ---
@@ -61,7 +62,8 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [1.20.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.20.1) — **Latest** | Fix: fundo do Chat Interno acinzentado (agora branco, igual ao chat com cliente) |
+| [1.21.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.0) — **Latest** | Marca da Penha animada nas telas "sem conversa selecionada" (brilho + constelação de ícones que reage ao mouse) |
+| [1.20.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.20.1) | Fix: fundo do Chat Interno acinzentado (agora branco, igual ao chat com cliente) |
 | [1.20.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.20.0) | Imagem personalizada no Chat Interno (sem conversa selecionada) |
 | [1.19.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.19.0) | Imagem personalizada na tela "sem conversa selecionada" (chat com cliente) |
 | [1.18.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.18.0) | Nome da empresa no picker de nova conversa ("Contato - Empresa") |
@@ -100,9 +102,21 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 ## ✨ Funcionalidades Implementadas
 
+### 1.21.0 – Marca da Penha animada nas telas vazias (2026-08-24)
+
+**Base:** `josuemadureira/chatwoot-custom:1.20.1`. Só o frontend mudou (2 componentes novos + logo + `EmptyState.vue`/`EmptyStateMessage.vue`/`InternalChatLayout.vue`). **EM PRODUÇÃO** (deploy autorizado, 2026-08-24). **ESTE É O ÚLTIMO.**
+
+- ✨ As duas telas "sem conversa selecionada" (chat com cliente e Chat Interno) trocam a foto estática pela **logo vertical da Penha** com dois efeitos, sempre só CSS/JS puro (sem GIF/vídeo/biblioteca):
+  - **Brilho:** um reflexo de luz atravessa o desenho da logo de tempos em tempos (mask no formato exato da marca, respeitando transparência).
+  - **Constelação:** ~19 quadradinhos discretos (no mesmo estilo da logo) espalhados por toda a área da tela vazia; ao passar o mouse perto de um deles, ele se afasta do cursor com uma pequena inércia elástica e volta sozinho quando o mouse sai — cobre o espaço vazio inteiro, não fica parado no canto.
+  - Respeita `prefers-reduced-motion` (desliga o brilho e a interação do mouse pra quem pede menos movimento no sistema) e não reage a toque/tablet (só mouse/trackpad).
+- **Arquivos novos:** `app/javascript/dashboard/assets/images/penha-logo-mark.png`, `app/javascript/dashboard/components/widgets/conversation/EmptyState/BrandMark.vue`, `app/javascript/dashboard/components/widgets/conversation/EmptyState/IconConstellation.vue`
+- **Arquivos alterados:** `EmptyState.vue`, `EmptyStateMessage.vue`, `InternalChatLayout.vue`
+- **Removidos** (substituídos pela marca animada): `no-chat-custom.jpg`, `no-internal-chat-custom.jpg`
+
 ### 1.20.1 – Fix: fundo do Chat Interno acinzentado (2026-08-21)
 
-**Base:** `josuemadureira/chatwoot-custom:1.20.0`. Só o frontend mudou (`InternalChatLayout.vue`). **EM PRODUÇÃO** (deploy autorizado, 2026-08-21). **ESTE É O ÚLTIMO.**
+**Base:** `josuemadureira/chatwoot-custom:1.20.0`. Só o frontend mudou (`InternalChatLayout.vue`).
 
 - 🐛 **Sintoma:** o fundo do Chat Interno ficava visivelmente acinzentado em comparação com o chat com cliente.
 - **Causa:** o container raiz usava `bg-n-background` (`#f7f7f7`), enquanto o chat com cliente usa `bg-n-surface-1` (`#fefefe`) na mesma área.
