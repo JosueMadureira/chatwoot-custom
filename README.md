@@ -10,7 +10,13 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:1.21.0` | **Atual + EM PRODUÇÃO** (deploy 2026-08-24) — 1.20.1 + **marca da Penha animada nas telas "sem conversa selecionada"** (chat com cliente e Chat Interno): logo com brilho passando + constelação de quadradinhos que se afasta do mouse ao passar perto |
+| `josuemadureira/chatwoot-custom:1.21.6` | **Atual + EM PRODUÇÃO** (deploy 2026-08-28) — 1.21.5 + **fix crítico: agente com função personalizada não conseguia ABRIR uma conversa do histórico do contato** (a restrição de visualização ficava mais rígida que o padrão do Chatwoot) + **histórico do contato mostra a data de início do atendimento** em vez de "há Nd" |
+| `josuemadureira/chatwoot-custom:1.21.5` | 1.21.4 + **fix crítico: mensagem recebida do cliente era PERDIDA** quando a Meta manda o identificador do contato num formato diferente do que já tinha uma conversa aberta (telefone puro vs "BR.xxxxx" opaco) |
+| `josuemadureira/chatwoot-custom:1.21.4` | 1.21.3 + **fix: aba "Todos" mostrava a contagem certa mas a lista vinha incompleta** (faltava reconhecer conversas onde o usuário era só PARTICIPANTE) |
+| `josuemadureira/chatwoot-custom:1.21.3` | 1.21.2 + **fix crítico: histórico e anexos do contato ficavam vazios** para agente com função personalizada depois de uma transferência (não são mais filtrados pela permissão granular) |
+| `josuemadureira/chatwoot-custom:1.21.2` | 1.21.1 + **menos quadradinhos na cor escura na constelação de ícones** (maioria verde) + afastados da área da logo/texto |
+| `josuemadureira/chatwoot-custom:1.21.1` | 1.21.0 + **quadradinhos da constelação maiores e em maior quantidade** (30, era 19) |
+| `josuemadureira/chatwoot-custom:1.21.0` | 1.20.1 + **marca da Penha animada nas telas "sem conversa selecionada"** (chat com cliente e Chat Interno): logo com brilho passando + constelação de quadradinhos que se afasta do mouse ao passar perto |
 | `josuemadureira/chatwoot-custom:1.20.1` | 1.20.0 + **fix: fundo do Chat Interno acinzentado** (era `bg-n-background` #f7f7f7, agora `bg-n-surface-1` #fefefe, igual ao chat com cliente) |
 | `josuemadureira/chatwoot-custom:1.20.0` | 1.19.0 + **imagem personalizada no Chat Interno** quando nenhuma conversa está selecionada |
 | `josuemadureira/chatwoot-custom:1.19.0` | 1.18.0 + **imagem personalizada na tela "sem conversa selecionada"** (chat com cliente, claro e escuro) |
@@ -51,7 +57,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:1.21.0
+docker pull josuemadureira/chatwoot-custom:1.21.6
 ```
 
 ---
@@ -62,7 +68,13 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [1.21.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.0) — **Latest** | Marca da Penha animada nas telas "sem conversa selecionada" (brilho + constelação de ícones que reage ao mouse) |
+| [1.21.6](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.6) — **Latest** | Fix: agente com função personalizada não conseguia abrir conversa do histórico + data de início do atendimento no histórico |
+| [1.21.5](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.5) | Fix crítico: mensagem recebida era perdida por identificador de contato inconsistente da Meta |
+| [1.21.4](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.4) | Fix: aba "Todos" com contagem certa mas lista incompleta (participante não reconhecido) |
+| [1.21.3](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.3) | Fix crítico: histórico e anexos do contato vazios após transferência |
+| [1.21.2](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.2) | Constelação de ícones: mais verde, menos escuro, afastada da logo/texto |
+| [1.21.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.1) | Constelação de ícones maior e em mais quantidade |
+| [1.21.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.0) | Marca da Penha animada nas telas "sem conversa selecionada" (brilho + constelação de ícones que reage ao mouse) |
 | [1.20.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.20.1) | Fix: fundo do Chat Interno acinzentado (agora branco, igual ao chat com cliente) |
 | [1.20.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.20.0) | Imagem personalizada no Chat Interno (sem conversa selecionada) |
 | [1.19.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.19.0) | Imagem personalizada na tela "sem conversa selecionada" (chat com cliente) |
@@ -102,9 +114,59 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 ## ✨ Funcionalidades Implementadas
 
+### 1.21.6 – Fix: abrir histórico + data de início do atendimento (2026-08-28)
+
+**Base:** `josuemadureira/chatwoot-custom:1.21.5`. **EM PRODUÇÃO** (deploy autorizado, 2026-08-28). **ESTE É O ÚLTIMO.**
+
+- 🐛 **Sintoma:** agente com função personalizada via a conversa na lista de "Conversas anteriores" do contato, mas ao clicar pra abrir, dava erro/não abria.
+- **Causa:** `Enterprise::ConversationPolicy#show?` (v4.18.10) ficou mais restritivo que o Chatwoot padrão — exigia bater com time/atribuição/participação mesmo quando o agente já tinha acesso à CAIXA de entrada (que é o suficiente no Chatwoot original para qualquer agente comum abrir/ver uma conversa).
+- 🔧 **Fix:** removida a restrição de visualização — `show?` agora só usa a regra padrão do Chatwoot (acesso à caixa ou ao time). As permissões granulares continuam válidas para o que aparece nas abas Minhas/Não atribuídas/Todos, só não bloqueiam mais a abertura individual de uma conversa já referenciada (histórico, busca, link direto).
+- ✨ **Data de início do atendimento:** o card de histórico do contato (aba "Histórico" em Contatos) mostrava "há 20d/30d" da última atividade; agora mostra a data em que o atendimento começou (`dd/MM/aaaa`).
+- **Arquivos:** `enterprise/app/policies/enterprise/conversation_policy.rb`, `app/javascript/dashboard/components-next/Conversation/ConversationCard/ConversationCard.vue`
+
+### 1.21.5 – Fix crítico: mensagem recebida perdida (2026-08-26)
+
+**Base:** `josuemadureira/chatwoot-custom:1.21.4`. Só o backend mudou (`incoming_message_base_service.rb`).
+
+- 🐛 **Sintoma:** cliente (WhatsApp Cloud API) enviava mensagem, o agente via que tinha sido entregue/lida no lado dele, mas ela nunca chegava no Chatwoot — sumia por completo, mesmo com o cliente respondendo normalmente em outra caixa de entrada.
+- **Causa:** a Meta manda o identificador do contato em formatos diferentes pro MESMO número (telefone puro, com o "9" extra, ou o novo id opaco `BR.xxxxx`) — cada formato novo cria um `ContactInbox` próprio. A busca de conversa existente olhava só a conversa daquele `contact_inbox` específico; se o cliente respondia com um formato "novo" enquanto já tinha uma conversa aberta criada com o formato antigo, o Chatwoot tentava CRIAR outra conversa, esbarrava na trava de "atendimento duplicado" e a mensagem recebida era descartada (o job de webhook estourava exceção sem salvar nada).
+- 🔧 **Fix:** a busca por conversa existente agora é por CONTATO + CAIXA (não mais pelo `contact_inbox` exato) + usa como segunda camada de proteção um método de recuperação que já existia no model (`create_with_open_duplicate_recovery!`) mas nunca era chamado.
+- **Arquivo:** `app/services/whatsapp/incoming_message_base_service.rb`
+
+### 1.21.4 – Fix: aba "Todos" com lista incompleta (2026-08-26)
+
+**Base:** `josuemadureira/chatwoot-custom:1.21.3`. Backend + frontend.
+
+- 🐛 **Sintoma:** a aba "Todos" mostrava a contagem certa (ex. 3), mas só listava 2 conversas.
+- **Causa:** o filtro de permissão granular do NAVEGADOR (`applyRoleFilter`) não tinha como saber se o usuário é PARTICIPANTE de uma conversa atribuída a outra pessoa — essa informação nunca chegava no JSON da conversa (só o backend sabia checar isso via SQL).
+- 🔧 **Fix:** o backend agora manda `participant_ids` no JSON de cada conversa (`conversation_finder.rb` + partial jbuilder), e o navegador usa isso para reconhecer participação corretamente.
+- **Arquivos:** `app/finders/conversation_finder.rb`, `app/views/api/v1/conversations/partials/_conversation.json.jbuilder`, `app/javascript/dashboard/store/modules/conversations/helpers.js`
+
+### 1.21.3 – Fix crítico: histórico e anexos do contato vazios (2026-08-26)
+
+**Base:** `josuemadureira/chatwoot-custom:1.21.2`. Só o backend mudou.
+
+- 🐛 **Sintoma:** ao transferir uma conversa, quem recebia não via o histórico de conversas anteriores nem os anexos do contato — ficava tudo vazio, mesmo com o contato tendo muitas conversas antigas.
+- **Causa:** essas duas telas (histórico + anexos do contato) também passavam pelo mesmo filtro de permissão granular da lista principal de conversas — mas histórico não deveria ser restrito por permissão nenhuma.
+- 🔧 **Fix:** removido o `Conversations::PermissionFilterService` dessas duas telas — todo agente vê o histórico e os anexos completos do contato, independente da função personalizada.
+- **Arquivos:** `app/controllers/api/v1/accounts/contacts/conversations_controller.rb`, `app/controllers/api/v1/accounts/contacts/attachments_controller.rb`
+
+### 1.21.2 – Constelação de ícones: mais verde, afastada da logo (2026-08-24)
+
+**Base:** `josuemadureira/chatwoot-custom:1.21.1`. Só o frontend mudou (`IconConstellation.vue`).
+
+- ✨ Reduzida a quantidade de quadradinhos na cor teal escura (parecia preto) — maioria agora é verde.
+- ✨ Quadradinhos que caíam por cima da logo/texto central foram afastados pra fora dessa área.
+
+### 1.21.1 – Constelação de ícones maior e em mais quantidade (2026-08-24)
+
+**Base:** `josuemadureira/chatwoot-custom:1.21.0`. Só o frontend mudou (`IconConstellation.vue`).
+
+- ✨ Quadradinhos aumentados (14-24px, era 8-14px) e em maior quantidade (30, era 19) — pedido do usuário depois de ver em produção.
+
 ### 1.21.0 – Marca da Penha animada nas telas vazias (2026-08-24)
 
-**Base:** `josuemadureira/chatwoot-custom:1.20.1`. Só o frontend mudou (2 componentes novos + logo + `EmptyState.vue`/`EmptyStateMessage.vue`/`InternalChatLayout.vue`). **EM PRODUÇÃO** (deploy autorizado, 2026-08-24). **ESTE É O ÚLTIMO.**
+**Base:** `josuemadureira/chatwoot-custom:1.20.1`. Só o frontend mudou (2 componentes novos + logo + `EmptyState.vue`/`EmptyStateMessage.vue`/`InternalChatLayout.vue`).
 
 - ✨ As duas telas "sem conversa selecionada" (chat com cliente e Chat Interno) trocam a foto estática pela **logo vertical da Penha** com dois efeitos, sempre só CSS/JS puro (sem GIF/vídeo/biblioteca):
   - **Brilho:** um reflexo de luz atravessa o desenho da logo de tempos em tempos (mask no formato exato da marca, respeitando transparência).
