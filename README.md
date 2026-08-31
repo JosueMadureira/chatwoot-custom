@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:1.21.6` | **Atual + EM PRODUÇÃO** (deploy 2026-08-28) — 1.21.5 + **fix crítico: agente com função personalizada não conseguia ABRIR uma conversa do histórico do contato** (a restrição de visualização ficava mais rígida que o padrão do Chatwoot) + **histórico do contato mostra a data de início do atendimento** em vez de "há Nd" |
+| `josuemadureira/chatwoot-custom:1.21.7` | **Atual + EM PRODUÇÃO** (deploy 2026-08-31) — 1.21.6 + **fix: conversas do Chat Interno com mais de 100 mensagens tinham o resto do histórico inacessível** — agora carrega automaticamente ao rolar até o topo |
+| `josuemadureira/chatwoot-custom:1.21.6` | 1.21.5 + **fix crítico: agente com função personalizada não conseguia ABRIR uma conversa do histórico do contato** (a restrição de visualização ficava mais rígida que o padrão do Chatwoot) + **histórico do contato mostra a data de início do atendimento** em vez de "há Nd" |
 | `josuemadureira/chatwoot-custom:1.21.5` | 1.21.4 + **fix crítico: mensagem recebida do cliente era PERDIDA** quando a Meta manda o identificador do contato num formato diferente do que já tinha uma conversa aberta (telefone puro vs "BR.xxxxx" opaco) |
 | `josuemadureira/chatwoot-custom:1.21.4` | 1.21.3 + **fix: aba "Todos" mostrava a contagem certa mas a lista vinha incompleta** (faltava reconhecer conversas onde o usuário era só PARTICIPANTE) |
 | `josuemadureira/chatwoot-custom:1.21.3` | 1.21.2 + **fix crítico: histórico e anexos do contato ficavam vazios** para agente com função personalizada depois de uma transferência (não são mais filtrados pela permissão granular) |
@@ -57,7 +58,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:1.21.6
+docker pull josuemadureira/chatwoot-custom:1.21.7
 ```
 
 ---
@@ -68,7 +69,8 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [1.21.6](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.6) — **Latest** | Fix: agente com função personalizada não conseguia abrir conversa do histórico + data de início do atendimento no histórico |
+| [1.21.7](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.7) — **Latest** | Fix: Chat Interno com mais de 100 mensagens tinha o resto do histórico inacessível |
+| [1.21.6](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.6) | Fix: agente com função personalizada não conseguia abrir conversa do histórico + data de início do atendimento no histórico |
 | [1.21.5](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.5) | Fix crítico: mensagem recebida era perdida por identificador de contato inconsistente da Meta |
 | [1.21.4](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.4) | Fix: aba "Todos" com contagem certa mas lista incompleta (participante não reconhecido) |
 | [1.21.3](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.3) | Fix crítico: histórico e anexos do contato vazios após transferência |
@@ -114,9 +116,18 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 ## ✨ Funcionalidades Implementadas
 
+### 1.21.7 – Fix: mensagens antigas do Chat Interno inacessíveis (2026-08-31)
+
+**Base:** `josuemadureira/chatwoot-custom:1.21.6`. **EM PRODUÇÃO** (deploy autorizado, 2026-08-31). **ESTE É O ÚLTIMO.**
+
+- 🐛 **Sintoma:** numa conversa do Chat Interno com muitas mensagens trocadas ao longo de semanas, o agente só via as mais recentes — rolando pro topo, nada acontecia, o histórico anterior a um certo ponto ficava inacessível.
+- **Causa:** o endpoint de mensagens do Chat Interno sempre devolvia só as 100 mais recentes, sem nenhuma forma de pedir as anteriores. E o polling de 3s SUBSTITUÍA a lista inteira de mensagens na tela a cada rodada — então mesmo se alguma tela chegasse a mostrar mais, o próximo poll apagava de novo.
+- 🔧 **Fix:** o endpoint aceita agora um parâmetro `before_id` pra devolver as até 100 mensagens anteriores a um certo ponto. O frontend detecta quando o usuário rola até o topo da conversa e busca esse lote mais antigo automaticamente, inserindo no topo da lista sem "pular" a tela. E o polling de 3s passou a **mesclar** as mensagens (atualiza as que já existem, adiciona as novas) em vez de substituir a lista inteira — as mensagens antigas carregadas não somem mais no próximo poll.
+- **Arquivos:** `app/controllers/api/v1/accounts/internal_chat_controller.rb`, `app/javascript/dashboard/components-next/InternalChat/InternalChatLayout.vue`
+
 ### 1.21.6 – Fix: abrir histórico + data de início do atendimento (2026-08-28)
 
-**Base:** `josuemadureira/chatwoot-custom:1.21.5`. **EM PRODUÇÃO** (deploy autorizado, 2026-08-28). **ESTE É O ÚLTIMO.**
+**Base:** `josuemadureira/chatwoot-custom:1.21.5`.
 
 - 🐛 **Sintoma:** agente com função personalizada via a conversa na lista de "Conversas anteriores" do contato, mas ao clicar pra abrir, dava erro/não abria.
 - **Causa:** `Enterprise::ConversationPolicy#show?` (v4.18.10) ficou mais restritivo que o Chatwoot padrão — exigia bater com time/atribuição/participação mesmo quando o agente já tinha acesso à CAIXA de entrada (que é o suficiente no Chatwoot original para qualquer agente comum abrir/ver uma conversa).
