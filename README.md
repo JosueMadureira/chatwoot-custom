@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:1.21.7` | **Atual + EM PRODUÇÃO** (deploy 2026-08-31) — 1.21.6 + **fix: conversas do Chat Interno com mais de 100 mensagens tinham o resto do histórico inacessível** — agora carrega automaticamente ao rolar até o topo |
+| `josuemadureira/chatwoot-custom:1.22.0` | **Atual + EM PRODUÇÃO** (deploy 2026-09-01) — 1.21.7 + **paleta de cores da marca Penha em todo o Chatwoot** (dashboard + widget do cliente): botões, links, checks e destaques trocados de azul para o verde da Penha |
+| `josuemadureira/chatwoot-custom:1.21.7` | 1.21.6 + **fix: conversas do Chat Interno com mais de 100 mensagens tinham o resto do histórico inacessível** — agora carrega automaticamente ao rolar até o topo |
 | `josuemadureira/chatwoot-custom:1.21.6` | 1.21.5 + **fix crítico: agente com função personalizada não conseguia ABRIR uma conversa do histórico do contato** (a restrição de visualização ficava mais rígida que o padrão do Chatwoot) + **histórico do contato mostra a data de início do atendimento** em vez de "há Nd" |
 | `josuemadureira/chatwoot-custom:1.21.5` | 1.21.4 + **fix crítico: mensagem recebida do cliente era PERDIDA** quando a Meta manda o identificador do contato num formato diferente do que já tinha uma conversa aberta (telefone puro vs "BR.xxxxx" opaco) |
 | `josuemadureira/chatwoot-custom:1.21.4` | 1.21.3 + **fix: aba "Todos" mostrava a contagem certa mas a lista vinha incompleta** (faltava reconhecer conversas onde o usuário era só PARTICIPANTE) |
@@ -58,7 +59,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:1.21.7
+docker pull josuemadureira/chatwoot-custom:1.22.0
 ```
 
 ---
@@ -69,7 +70,8 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [1.21.7](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.7) — **Latest** | Fix: Chat Interno com mais de 100 mensagens tinha o resto do histórico inacessível |
+| [1.22.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.22.0) — **Latest** | Paleta de cores da marca Penha em todo o Chatwoot (dashboard + widget) |
+| [1.21.7](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.7) | Fix: Chat Interno com mais de 100 mensagens tinha o resto do histórico inacessível |
 | [1.21.6](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.6) | Fix: agente com função personalizada não conseguia abrir conversa do histórico + data de início do atendimento no histórico |
 | [1.21.5](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.5) | Fix crítico: mensagem recebida era perdida por identificador de contato inconsistente da Meta |
 | [1.21.4](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.4) | Fix: aba "Todos" com contagem certa mas lista incompleta (participante não reconhecido) |
@@ -116,9 +118,18 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 ## ✨ Funcionalidades Implementadas
 
+### 1.22.0 – Paleta de cores da marca Penha (2026-09-01)
+
+**Base:** `josuemadureira/chatwoot-custom:1.21.7`. Só o frontend mudou. **EM PRODUÇÃO** (deploy autorizado, 2026-09-01). **ESTE É O ÚLTIMO.**
+
+- ✨ O Chatwoot tem duas paletas de cor centralizadas: a escala `woot` (Tailwind, usada nos componentes mais antigos) e a escala `iris` (variáveis CSS, usada nos componentes novos — `components-next/*`). As duas eram derivadas do azul; agora são derivadas do verde da Penha.
+- **Como foi gerada:** peguei a estrutura de contraste testada do Radix "jade" (12 tons, claro e escuro) e troquei só o TOM de cor para o verde da Penha (~145° de matiz, entre o verde vivo `#00d033` e o teal `#006b63` da logo), com a saturação reforçada. Isso preserva as relações de contraste que o Radix já validou (fundo, texto, bordas) e só muda a identidade visual.
+- Afeta botões primários, links, checkmarks, badges e destaques em foco — no dashboard **e** no widget que o cliente final vê.
+- **Arquivos:** `theme/colors.js` (escala `woot` + `n.brand`), `app/javascript/dashboard/assets/scss/_next-colors.scss` (escala `iris` + `--solid-iris`, claro e escuro)
+
 ### 1.21.7 – Fix: mensagens antigas do Chat Interno inacessíveis (2026-08-31)
 
-**Base:** `josuemadureira/chatwoot-custom:1.21.6`. **EM PRODUÇÃO** (deploy autorizado, 2026-08-31). **ESTE É O ÚLTIMO.**
+**Base:** `josuemadureira/chatwoot-custom:1.21.6`.
 
 - 🐛 **Sintoma:** numa conversa do Chat Interno com muitas mensagens trocadas ao longo de semanas, o agente só via as mais recentes — rolando pro topo, nada acontecia, o histórico anterior a um certo ponto ficava inacessível.
 - **Causa:** o endpoint de mensagens do Chat Interno sempre devolvia só as 100 mais recentes, sem nenhuma forma de pedir as anteriores. E o polling de 3s SUBSTITUÍA a lista inteira de mensagens na tela a cada rodada — então mesmo se alguma tela chegasse a mostrar mais, o próximo poll apagava de novo.
