@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:1.22.0` | **Atual + EM PRODUÇÃO** (deploy 2026-09-01) — 1.21.7 + **paleta de cores da marca Penha em todo o Chatwoot** (dashboard + widget do cliente): botões, links, checks e destaques trocados de azul para o verde da Penha |
+| `josuemadureira/chatwoot-custom:1.22.1` | **Atual + EM PRODUÇÃO** (deploy 2026-09-01) — 1.22.0 + **fix: ainda tinha muito azul** (botões "+", "Adicionar nota", bolhas de mensagem) porque "blue" é a cor PADRÃO dos componentes novos quando nenhuma outra é escolhida — agora também é verde da Penha |
+| `josuemadureira/chatwoot-custom:1.22.0` | 1.21.7 + **paleta de cores da marca Penha em todo o Chatwoot** (dashboard + widget do cliente): botões, links, checks e destaques trocados de azul para o verde da Penha |
 | `josuemadureira/chatwoot-custom:1.21.7` | 1.21.6 + **fix: conversas do Chat Interno com mais de 100 mensagens tinham o resto do histórico inacessível** — agora carrega automaticamente ao rolar até o topo |
 | `josuemadureira/chatwoot-custom:1.21.6` | 1.21.5 + **fix crítico: agente com função personalizada não conseguia ABRIR uma conversa do histórico do contato** (a restrição de visualização ficava mais rígida que o padrão do Chatwoot) + **histórico do contato mostra a data de início do atendimento** em vez de "há Nd" |
 | `josuemadureira/chatwoot-custom:1.21.5` | 1.21.4 + **fix crítico: mensagem recebida do cliente era PERDIDA** quando a Meta manda o identificador do contato num formato diferente do que já tinha uma conversa aberta (telefone puro vs "BR.xxxxx" opaco) |
@@ -59,7 +60,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:1.22.0
+docker pull josuemadureira/chatwoot-custom:1.22.1
 ```
 
 ---
@@ -70,7 +71,8 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [1.22.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.22.0) — **Latest** | Paleta de cores da marca Penha em todo o Chatwoot (dashboard + widget) |
+| [1.22.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.22.1) — **Latest** | Fix: escala "blue" (cor padrão dos botões/bolhas) também trocada pro verde da Penha |
+| [1.22.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.22.0) | Paleta de cores da marca Penha em todo o Chatwoot (dashboard + widget) |
 | [1.21.7](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.7) | Fix: Chat Interno com mais de 100 mensagens tinha o resto do histórico inacessível |
 | [1.21.6](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.6) | Fix: agente com função personalizada não conseguia abrir conversa do histórico + data de início do atendimento no histórico |
 | [1.21.5](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.5) | Fix crítico: mensagem recebida era perdida por identificador de contato inconsistente da Meta |
@@ -118,9 +120,18 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 ## ✨ Funcionalidades Implementadas
 
+### 1.22.1 – Fix: ainda tinha muito azul (2026-09-01)
+
+**Base:** `josuemadureira/chatwoot-custom:1.22.0`. Só o frontend mudou. **EM PRODUÇÃO** (deploy autorizado, 2026-09-01). **ESTE É O ÚLTIMO.**
+
+- 🐛 **Sintoma:** depois da v1.22.0, ainda tinha muito azul — botões "+", "Adicionar nota de contato", "Adicionar etiquetas" e as bolhas de mensagem das conversas.
+- **Causa:** a escala `blue` (variáveis CSS) é a cor PADRÃO usada pelos componentes novos quando nenhuma outra é explicitamente escolhida (`components-next/button/Button.vue`, `computedColor` cai pra `'blue'` por padrão) — a v1.22.0 só tinha trocado `iris`, que não é usada como padrão em quase nada.
+- 🔧 **Fix:** mesmo método de troca de tom (Radix, ~145°) aplicado também na escala `blue` inteira (12 tons, claro e escuro) + os tokens derivados dela (`--solid-blue`, `--text-blue`, `--border-blue-strong`, `--border-blue`).
+- **Arquivo:** `app/javascript/dashboard/assets/scss/_next-colors.scss`
+
 ### 1.22.0 – Paleta de cores da marca Penha (2026-09-01)
 
-**Base:** `josuemadureira/chatwoot-custom:1.21.7`. Só o frontend mudou. **EM PRODUÇÃO** (deploy autorizado, 2026-09-01). **ESTE É O ÚLTIMO.**
+**Base:** `josuemadureira/chatwoot-custom:1.21.7`. Só o frontend mudou.
 
 - ✨ O Chatwoot tem duas paletas de cor centralizadas: a escala `woot` (Tailwind, usada nos componentes mais antigos) e a escala `iris` (variáveis CSS, usada nos componentes novos — `components-next/*`). As duas eram derivadas do azul; agora são derivadas do verde da Penha.
 - **Como foi gerada:** peguei a estrutura de contraste testada do Radix "jade" (12 tons, claro e escuro) e troquei só o TOM de cor para o verde da Penha (~145° de matiz, entre o verde vivo `#00d033` e o teal `#006b63` da logo), com a saturação reforçada. Isso preserva as relações de contraste que o Radix já validou (fundo, texto, bordas) e só muda a identidade visual.
