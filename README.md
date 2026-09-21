@@ -10,7 +10,8 @@
 
 | Imagem | Descrição |
 |---|---|
-| `josuemadureira/chatwoot-custom:1.22.1` | **Atual + EM PRODUÇÃO** (deploy 2026-09-01) — 1.22.0 + **fix: ainda tinha muito azul** (botões "+", "Adicionar nota", bolhas de mensagem) porque "blue" é a cor PADRÃO dos componentes novos quando nenhuma outra é escolhida — agora também é verde da Penha |
+| `josuemadureira/chatwoot-custom:1.22.2` | **Atual + EM PRODUÇÃO** (deploy 2026-09-21) — 1.22.1 + **fix crítico: conversas do Chat Interno apareciam em "Não atribuídas"/"Todos"** da tela normal (todo usuário é membro automático da caixa "Chat Interno", que nunca tem auto-assign — as conversas internas se acumulavam lá misturadas com as de clientes) |
+| `josuemadureira/chatwoot-custom:1.22.1` | 1.22.0 + **fix: ainda tinha muito azul** (botões "+", "Adicionar nota", bolhas de mensagem) porque "blue" é a cor PADRÃO dos componentes novos quando nenhuma outra é escolhida — agora também é verde da Penha |
 | `josuemadureira/chatwoot-custom:1.22.0` | 1.21.7 + **paleta de cores da marca Penha em todo o Chatwoot** (dashboard + widget do cliente): botões, links, checks e destaques trocados de azul para o verde da Penha |
 | `josuemadureira/chatwoot-custom:1.21.7` | 1.21.6 + **fix: conversas do Chat Interno com mais de 100 mensagens tinham o resto do histórico inacessível** — agora carrega automaticamente ao rolar até o topo |
 | `josuemadureira/chatwoot-custom:1.21.6` | 1.21.5 + **fix crítico: agente com função personalizada não conseguia ABRIR uma conversa do histórico do contato** (a restrição de visualização ficava mais rígida que o padrão do Chatwoot) + **histórico do contato mostra a data de início do atendimento** em vez de "há Nd" |
@@ -60,7 +61,7 @@
 
 ```bash
 # Baixar a imagem atual
-docker pull josuemadureira/chatwoot-custom:1.22.1
+docker pull josuemadureira/chatwoot-custom:1.22.2
 ```
 
 ---
@@ -71,7 +72,8 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 | Release | Destaque |
 |---|---|
-| [1.22.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.22.1) — **Latest** | Fix: escala "blue" (cor padrão dos botões/bolhas) também trocada pro verde da Penha |
+| [1.22.2](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.22.2) — **Latest** | Fix crítico: conversas do Chat Interno apareciam em "Não atribuídas"/"Todos" |
+| [1.22.1](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.22.1) | Fix: escala "blue" (cor padrão dos botões/bolhas) também trocada pro verde da Penha |
 | [1.22.0](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.22.0) | Paleta de cores da marca Penha em todo o Chatwoot (dashboard + widget) |
 | [1.21.7](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.7) | Fix: Chat Interno com mais de 100 mensagens tinha o resto do histórico inacessível |
 | [1.21.6](https://github.com/JosueMadureira/chatwoot-custom/releases/tag/1.21.6) | Fix: agente com função personalizada não conseguia abrir conversa do histórico + data de início do atendimento no histórico |
@@ -120,9 +122,18 @@ Cada versão publicada no Docker Hub tem uma **Release** correspondente no GitHu
 
 ## ✨ Funcionalidades Implementadas
 
+### 1.22.2 – Fix crítico: Chat Interno vazava para "Não atribuídas" (2026-09-21)
+
+**Base:** `josuemadureira/chatwoot-custom:1.22.1`. Só o backend mudou. **EM PRODUÇÃO** (deploy autorizado, 2026-09-21). **ESTE É O ÚLTIMO.**
+
+- 🐛 **Sintoma:** no usuário Sistema (Admin), a aba "Não atribuídas" mostrava vários "Sistema Interno" contendo todas as mensagens trocadas entre colaboradores no Chat Interno.
+- **Causa:** o Chat Interno usa uma caixa de entrada real chamada "Chat Interno" (criada automaticamente, `enable_auto_assignment: false`), e **todo usuário da conta é adicionado como membro dela**. A consulta principal de conversas (`ConversationFinder`) nunca excluía `internal: true` — então essas conversas, que nunca são atribuídas, se acumulavam para sempre em "Não atribuídas"/"Todos" de qualquer agente com acesso amplo.
+- 🔧 **Fix:** `ConversationFinder` e o serviço de filtros customizados agora excluem `internal: true` da consulta principal — o Chat Interno continua só na tela dedicada dele.
+- **Arquivos:** `app/finders/conversation_finder.rb`, `app/services/conversations/filter_service.rb`
+
 ### 1.22.1 – Fix: ainda tinha muito azul (2026-09-01)
 
-**Base:** `josuemadureira/chatwoot-custom:1.22.0`. Só o frontend mudou. **EM PRODUÇÃO** (deploy autorizado, 2026-09-01). **ESTE É O ÚLTIMO.**
+**Base:** `josuemadureira/chatwoot-custom:1.22.0`. Só o frontend mudou.
 
 - 🐛 **Sintoma:** depois da v1.22.0, ainda tinha muito azul — botões "+", "Adicionar nota de contato", "Adicionar etiquetas" e as bolhas de mensagem das conversas.
 - **Causa:** a escala `blue` (variáveis CSS) é a cor PADRÃO usada pelos componentes novos quando nenhuma outra é explicitamente escolhida (`components-next/button/Button.vue`, `computedColor` cai pra `'blue'` por padrão) — a v1.22.0 só tinha trocado `iris`, que não é usada como padrão em quase nada.
